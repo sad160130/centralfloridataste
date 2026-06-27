@@ -1,0 +1,180 @@
+county,county_slug,city_key,city_display,city_slug,listings,hub_eligible
+Brevard,brevard,MELBOURNE,Melbourne,melbourne,427,True
+Brevard,brevard,PALM BAY,Palm Bay,palm-bay,153,True
+Brevard,brevard,TITUSVILLE,Titusville,titusville,133,True
+Brevard,brevard,COCOA BEACH,Cocoa Beach,cocoa-beach,132,True
+Brevard,brevard,COCOA,Cocoa,cocoa,114,True
+Brevard,brevard,MERRITT ISLAND,Merritt Island,merritt-island,97,True
+Brevard,brevard,ROCKLEDGE,Rockledge,rockledge,83,True
+Brevard,brevard,WEST MELBOURNE,West Melbourne,west-melbourne,73,True
+Brevard,brevard,CAPE CANAVERAL,Cape Canaveral,cape-canaveral,54,True
+Brevard,brevard,SATELLITE BEACH,Satellite Beach,satellite-beach,48,True
+Brevard,brevard,INDIALANTIC,Indialantic,indialantic,36,True
+Brevard,brevard,INDIAN HARBOUR BEACH,Indian Harbour Beach,indian-harbour-beach,29,True
+Brevard,brevard,MELBOURNE BEACH,Melbourne Beach,melbourne-beach,18,True
+Brevard,brevard,VIERA,Viera,viera,13,True
+Brevard,brevard,MICCO,Micco,micco,8,False
+Brevard,brevard,MIMS,Mims,mims,5,False
+Brevard,brevard,PORT ST JOHN,Port St. John,port-st-john,5,False
+Brevard,brevard,BAREFOOT BAY,Barefoot Bay,barefoot-bay,4,False
+Brevard,brevard,GRANT,Grant,grant,4,False
+Brevard,brevard,MALABAR,Malabar,malabar,4,False
+Brevard,brevard,INDIAN HARBOR BEACH,Indian Harbor Beach,indian-harbor-beach,3,False
+Brevard,brevard,INDIAN HARBOUR,Indian Harbour,indian-harbour,2,False
+Brevard,brevard,MERRITT ISL,Merritt Isl,merritt-isl,2,False
+Brevard,brevard,PALM SHORES,Palm Shores,palm-shores,2,False
+Brevard,brevard,W MELBOURNE,W Melbourne,w-melbourne,2,False
+Brevard,brevard,COOPER CITY,Cooper City,cooper-city,1,False
+Brevard,brevard,INDIAN HARBOUR BEADH,Indian Harbour Beadh,indian-harbour-beadh,1,False
+Brevard,brevard,MELBLOURNE,Melblourne,melblourne,1,False
+Brevard,brevard,MELBORNE,Melborne,melborne,1,False
+Brevard,brevard,MELBOUNE BEACH,Melboune Beach,melboune-beach,1,False
+Brevard,brevard,MELBOURNE VILLAGE,Melbourne Village,melbourne-village,1,False
+Brevard,brevard,"MELBOURNE, FL","Melbourne, Fl",melbourne-fl,1,False
+Brevard,brevard,MELBOURNE-VIERA,Melbourne-Viera,melbourne-viera,1,False
+Brevard,brevard,MERRIT ISL,Merrit Isl,merrit-isl,1,False
+Brevard,brevard,MERRITT IS,Merritt Is,merritt-is,1,False
+Brevard,brevard,MERRITT ISALND,Merritt Isalnd,merritt-isalnd,1,False
+Brevard,brevard,MERRITT ISLE,Merritt Isle,merritt-isle,1,False
+Brevard,brevard,PORT CANAVERAL,Port Canaveral,port-canaveral,1,False
+Brevard,brevard,PORT SAINT JOHN,Port Saint John,port-saint-john,1,False
+Brevard,brevard,SUNTREE,Suntree,suntree,1,False
+Indian River,indian-river,VERO BEACH,Vero Beach,vero-beach,315,True
+Indian River,indian-river,SEBASTIAN,Sebastian,sebastian,72,True
+Indian River,indian-river,FELLSMERE,Fellsmere,fellsmere,7,False
+Indian River,indian-river,TOWN OF ORCHID,Town Of Orchid,town-of-orchid,3,False
+Indian River,indian-river,INDIAN RIVER SHORES,Indian River Shores,indian-river-shores,2,False
+Indian River,indian-river,ORCHID,Orchid,orchid,1,False
+Indian River,indian-river,S VERO BEACH,S Vero Beach,s-vero-beach,1,False
+Indian River,indian-river,SEBASTAIN,Sebastain,sebastain,1,False
+Indian River,indian-river,VERO,Vero,vero,1,False
+Indian River,indian-river,WABASSO,Wabasso,wabasso,1,False
+Lake,lake,CLERMONT,Clermont,clermont,239,True
+Lake,lake,LEESBURG,Leesburg,leesburg,147,True
+Lake,lake,MOUNT DORA,Mount Dora,mount-dora,110,True
+Lake,lake,EUSTIS,Eustis,eustis,88,True
+Lake,lake,TAVARES,Tavares,tavares,50,True
+Lake,lake,LADY LAKE,Lady Lake,lady-lake,49,True
+Lake,lake,GROVELAND,Groveland,groveland,36,True
+Lake,lake,MINNEOLA,Minneola,minneola,12,True
+Lake,lake,THE VILLAGES,The Villages,the-villages,12,True
+Lake,lake,UMATILLA,Umatilla,umatilla,12,True
+Lake,lake,FRUITLAND PARK,Fruitland Park,fruitland-park,10,True
+Lake,lake,ASTOR,Astor,astor,8,False
+Lake,lake,MT DORA,Mt Dora,mt-dora,6,False
+Lake,lake,SORRENTO,Sorrento,sorrento,5,False
+Lake,lake,HOWEY IN THE HILLS,Howey In The Hills,howey-in-the-hills,4,False
+Lake,lake,MONTVERDE,Montverde,montverde,3,False
+Lake,lake,ALTOONA,Altoona,altoona,2,False
+Lake,lake,MASCOTTE,Mascotte,mascotte,2,False
+Lake,lake,PAISLEY,Paisley,paisley,2,False
+Lake,lake,ASTATULA,Astatula,astatula,1,False
+Lake,lake,DONA VISTA,Dona Vista,dona-vista,1,False
+Lake,lake,LESSBURG,Lessburg,lessburg,1,False
+Lake,lake,MIDDLETON,Middleton,middleton,1,False
+Lake,lake,MOUNTVERDE,Mountverde,mountverde,1,False
+Lake,lake,MT. DORA,Mt. Dora,mt-dora,1,False
+Lake,lake,OKAHUMPKA,Okahumpka,okahumpka,1,False
+Lake,lake,TAVERES,Taveres,taveres,1,False
+Lake,lake,WEIRSDALE,Weirsdale,weirsdale,1,False
+Orange,orange,ORLANDO,Orlando,orlando,3635,True
+Orange,orange,WINTER PARK,Winter Park,winter-park,257,True
+Orange,orange,LAKE BUENA VISTA,Lake Buena Vista,lake-buena-vista,253,True
+Orange,orange,WINTER GARDEN,Winter Garden,winter-garden,192,True
+Orange,orange,APOPKA,Apopka,apopka,149,True
+Orange,orange,OCOEE,Ocoee,ocoee,130,True
+Orange,orange,BAY LAKE,Bay Lake,bay-lake,94,True
+Orange,orange,MAITLAND,Maitland,maitland,59,True
+Orange,orange,WINDERMERE,Windermere,windermere,50,True
+Orange,orange,ZELLWOOD,Zellwood,zellwood,5,False
+Orange,orange,BAYLAKE,Baylake,baylake,3,False
+Orange,orange,PINE CASTLE,Pine Castle,pine-castle,3,False
+Orange,orange,EATONVILLE,Eatonville,eatonville,2,False
+Orange,orange,EDGEWOOD,Edgewood,edgewood,2,False
+Orange,orange,WINTERPARK,Winterpark,winterpark,2,False
+Orange,orange,AZALEA PARK,Azalea Park,azalea-park,1,False
+Orange,orange,CHRISTMAS,Christmas,christmas,1,False
+Orange,orange,COLLEGE PARK,College Park,college-park,1,False
+Orange,orange,HIAWASSEE,Hiawassee,hiawassee,1,False
+Orange,orange,LAKE NONA,Lake Nona,lake-nona,1,False
+Orange,orange,OAKLAND,Oakland,oakland,1,False
+Orange,orange,OCCOE,Occoe,occoe,1,False
+Orange,orange,OCOCEE,Ococee,ococee,1,False
+Orange,orange,ORLAND,Orland,orland,1,False
+Orange,orange,UNION PARK,Union Park,union-park,1,False
+Orange,orange,WINTER GARDENS,Winter Gardens,winter-gardens,1,False
+Orange,orange,WINTER HAVEN,Winter Haven,winter-haven,1,False
+Orange,orange,WINTER PK,Winter Pk,winter-pk,1,False
+Osceola,osceola,KISSIMMEE,Kissimmee,kissimmee,804,True
+Osceola,osceola,ST. CLOUD,St.. Cloud,st-cloud,83,True
+Osceola,osceola,SAINT CLOUD,Saint Cloud,saint-cloud,51,True
+Osceola,osceola,CELEBRATION,Celebration,celebration,35,True
+Osceola,osceola,CHAMPIONS GATE,Champions Gate,champions-gate,20,True
+Osceola,osceola,DAVENPORT,Davenport,davenport,18,True
+Osceola,osceola,ST CLOUD,St. Cloud,st-cloud,15,True
+Osceola,osceola,POINCIANA,Poinciana,poinciana,7,False
+Osceola,osceola,KENANSVILLE,Kenansville,kenansville,4,False
+Osceola,osceola,REUNION,Reunion,reunion,3,False
+Osceola,osceola,HARMONY,Harmony,harmony,2,False
+Osceola,osceola,INTERCESSION CITY,Intercession City,intercession-city,2,False
+Osceola,osceola,CHAMPIONS GT,Champions Gt,champions-gt,1,False
+Osceola,osceola,KISSIMEE,Kissimee,kissimee,1,False
+Osceola,osceola,KISSSIMME,Kisssimme,kisssimme,1,False
+Seminole,seminole,SANFORD,Sanford,sanford,222,True
+Seminole,seminole,OVIEDO,Oviedo,oviedo,165,True
+Seminole,seminole,ALTAMONTE SPRINGS,Altamonte Springs,altamonte-springs,159,True
+Seminole,seminole,LAKE MARY,Lake Mary,lake-mary,143,True
+Seminole,seminole,LONGWOOD,Longwood,longwood,115,True
+Seminole,seminole,CASSELBERRY,Casselberry,casselberry,71,True
+Seminole,seminole,WINTER SPRINGS,Winter Springs,winter-springs,68,True
+Seminole,seminole,FERN PARK,Fern Park,fern-park,16,True
+Seminole,seminole,ALTAMONTE SPGS,Altamonte Spgs,altamonte-spgs,9,False
+Seminole,seminole,HEATHROW,Heathrow,heathrow,6,False
+Seminole,seminole,OVEIDO,Oveido,oveido,3,False
+Seminole,seminole,CHULUOTA,Chuluota,chuluota,2,False
+Seminole,seminole,GENEVA,Geneva,geneva,2,False
+Seminole,seminole,WINTER SPGS,Winter Spgs,winter-spgs,2,False
+Seminole,seminole,ALTAMONTE SPRING,Altamonte Spring,altamonte-spring,1,False
+Seminole,seminole,CASSSELBERRY,Cassselberry,cassselberry,1,False
+Seminole,seminole,FOREST CITY,Forest City,forest-city,1,False
+Seminole,seminole,SAN FORD,San Ford,san-ford,1,False
+Seminole,seminole,WINTER SPRING,Winter Spring,winter-spring,1,False
+St. Lucie,st-lucie,PORT ST LUCIE,Port St. Lucie,port-st-lucie,363,True
+St. Lucie,st-lucie,FORT PIERCE,Fort Pierce,fort-pierce,197,True
+St. Lucie,st-lucie,PORT SAINT LUCIE,Port Saint Lucie,port-saint-lucie,33,True
+St. Lucie,st-lucie,PORT ST. LUCIE,Port St.. Lucie,port-st-lucie,24,True
+St. Lucie,st-lucie,FT PIERCE,Fort Pierce,ft-pierce,15,True
+St. Lucie,st-lucie,JENSEN BEACH,Jensen Beach,jensen-beach,10,True
+St. Lucie,st-lucie,OKEECHOBEE,Okeechobee,okeechobee,7,False
+St. Lucie,st-lucie,PALM CITY,Palm City,palm-city,3,False
+St. Lucie,st-lucie,PORT SAINT LUICE,Port Saint Luice,port-saint-luice,1,False
+St. Lucie,st-lucie,PORT ST.LUCIE,Port St..Lucie,port-st-lucie,1,False
+St. Lucie,st-lucie,PT ST LUCIE,Pt St. Lucie,pt-st-lucie,1,False
+Volusia,volusia,DAYTONA BEACH,Daytona Beach,daytona-beach,380,True
+Volusia,volusia,ORMOND BEACH,Ormond Beach,ormond-beach,193,True
+Volusia,volusia,NEW SMYRNA BEACH,New Smyrna Beach,new-smyrna-beach,164,True
+Volusia,volusia,DELAND,Deland,deland,163,True
+Volusia,volusia,PORT ORANGE,Port Orange,port-orange,137,True
+Volusia,volusia,DELTONA,Deltona,deltona,76,True
+Volusia,volusia,ORANGE CITY,Orange City,orange-city,75,True
+Volusia,volusia,SOUTH DAYTONA,South Daytona,south-daytona,38,True
+Volusia,volusia,DAYTONA BEACH SHORES,Daytona Beach Shores,daytona-beach-shores,36,True
+Volusia,volusia,EDGEWATER,Edgewater,edgewater,36,True
+Volusia,volusia,HOLLY HILL,Holly Hill,holly-hill,33,True
+Volusia,volusia,DEBARY,Debary,debary,29,True
+Volusia,volusia,PONCE INLET,Ponce Inlet,ponce-inlet,11,True
+Volusia,volusia,PIERSON,Pierson,pierson,7,False
+Volusia,volusia,DE LEON SPRINGS,De Leon Springs,de-leon-springs,5,False
+Volusia,volusia,LAKE HELEN,Lake Helen,lake-helen,5,False
+Volusia,volusia,DELEON SPRINGS,Deleon Springs,deleon-springs,4,False
+Volusia,volusia,OAK HILL,Oak Hill,oak-hill,4,False
+Volusia,volusia,OSTEEN,Osteen,osteen,2,False
+Volusia,volusia,DAYTONA,Daytona,daytona,1,False
+Volusia,volusia,DAYTONA BEACH SHORE,Daytona Beach Shore,daytona-beach-shore,1,False
+Volusia,volusia,DE LEON,De Leon,de-leon,1,False
+Volusia,volusia,NEW SMRNA BEACH,New Smrna Beach,new-smrna-beach,1,False
+Volusia,volusia,NEW SMYRNA,New Smyrna,new-smyrna,1,False
+Volusia,volusia,NEW SYMRNA BEACH,New Symrna Beach,new-symrna-beach,1,False
+Volusia,volusia,ORMAND BEACH,Ormand Beach,ormand-beach,1,False
+Volusia,volusia,ORMOND BY THE SEA,Ormond By The Sea,ormond-by-the-sea,1,False
+Volusia,volusia,PT ORANGE,Pt Orange,pt-orange,1,False
