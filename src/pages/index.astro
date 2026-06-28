@@ -26,10 +26,10 @@ const topRatedGuides = specialPages
   .slice(0, 8);
 
 const siteUrl = new URL('/', Astro.site).href;
-const seoTitle = 'Central Florida Restaurant Health Scores & Dietary Guide';
+const seoTitle = 'Central Florida Restaurants: Health Grades & Guide';
 const seoDescription =
-  'Health inspection grades, dietary options, and ratings for restaurants across ' +
-  'Central Florida — browse by county, city, and dining district.';
+  'Browse Central Florida restaurants by official health inspection grade (A–F), dietary ' +
+  'options, and diner ratings — find clean, safe places to eat.';
 
 const websiteSchema = {
   '@context': 'https://schema.org',
@@ -40,24 +40,54 @@ const websiteSchema = {
   publisher: { '@id': `${siteUrl}#organization` },
 };
 // Organization is emitted sitewide by Base.astro (publisher, with @id + logo).
+
+// FAQ — targets "florida restaurants" intent + answer-engine (FAQPage) visibility.
+const faqs = [
+  {
+    q: 'Does Florida give restaurants letter grades or scores?',
+    a: "No. Florida's Department of Business and Professional Regulation (DBPR) inspects restaurants and records violations, but it does not assign letter grades or scores. The A–F grades on this site are calculated by us from DBPR's public inspection records.",
+  },
+  {
+    q: 'How are the health grades for Florida restaurants calculated?',
+    a: 'Each restaurant starts at 100 points; we subtract 8 points per high-priority violation, 3 per intermediate, and 1 per basic from its most recent inspection, plus penalties for enforcement actions. Scores map to A (90+), B (80–89), C (70–79), D (60–69), and F (below 60).',
+  },
+  {
+    q: 'Which Florida restaurants does this guide cover?',
+    a: `We cover the eight Central Florida counties in DBPR District 4 — Orange, Brevard, Volusia, Seminole, Osceola, Lake, St. Lucie, and Indian River — currently ${phase1.length} graded restaurants, with more added every week.`,
+  },
+  {
+    q: 'How current is the inspection data?',
+    a: 'We refresh from DBPR on a regular cycle, and every restaurant page shows the date its data was last updated.',
+  },
+];
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
 ---
 
 <Base title={seoTitle} description={seoDescription}>
   <script
     type="application/ld+json"
     slot="jsonld"
-    set:html={JSON.stringify([websiteSchema])}
+    set:html={JSON.stringify([websiteSchema, faqSchema])}
   />
 
   <main>
     <article>
       <p class="eyebrow">DBPR-graded · {totalTracked.toLocaleString('en-US')} restaurants · Updated June 2026</p>
-      <h1>Central Florida Restaurant Health Scores &amp; Dietary Guide</h1>
+      <h1>Central Florida Restaurants, Graded A–F by Health Inspection</h1>
       <p class="lead">
-        Find where to eat across Central Florida with confidence. This directory pairs official
-        Florida health inspection grades with dietary accommodations and diner ratings for
-        {phase1.length} restaurants &mdash; {totalAGrade} of them currently holding an A grade.
-        Browse by county, city, or one of the region&rsquo;s named dining districts.
+        Compare Central Florida restaurants by the one thing Florida won&rsquo;t tell you: how clean
+        they are. We turn the state&rsquo;s public DBPR inspection records into clear A–F health grades
+        for {phase1.length} restaurants &mdash; {totalAGrade} currently grade A &mdash; alongside
+        dietary options and diner ratings. Browse by county, city, or one of the region&rsquo;s named
+        dining districts.
       </p>
 
       <ul class="filtercards">
@@ -117,6 +147,19 @@ const websiteSchema = {
         <ul class="cards">
           {featured.map((r) => <RestaurantCard r={r} />)}
         </ul>
+      </section>
+
+      <section id="faq">
+        <h2>Frequently asked questions about Florida restaurant grades</h2>
+        <div class="prose">
+          {faqs.map((f) => (
+            <>
+              <h3>{f.q}</h3>
+              <p>{f.a}</p>
+            </>
+          ))}
+          <p>Read the full method on our <a href="/methodology/">methodology page</a>.</p>
+        </div>
       </section>
     </article>
   </main>
