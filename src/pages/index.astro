@@ -1,0 +1,123 @@
+---
+import Base from '../layouts/Base.astro';
+import RestaurantCard from '../components/RestaurantCard.astro';
+import restaurants from '../data/restaurants.json';
+import { counties, districts, phase1 } from '../lib/data.js';
+import { specialPages } from '../lib/manifest.js';
+
+const totalTracked = restaurants.length;
+
+const countyList = [...counties].sort((a, b) => b.items.length - a.items.length);
+const districtList = [...districts].sort((a, b) => b.items.length - a.items.length);
+const totalAGrade = phase1.filter((r) => r.health_grade === 'A').length;
+
+// Featured: every hidden gem, then the most-reviewed A-grade spots to fill out the row.
+const hiddenGems = phase1.filter((r) => r.hidden_gem);
+const topA = phase1
+  .filter((r) => r.health_grade === 'A' && Number.isFinite(r.reviews_count))
+  .sort((a, b) => b.reviews_count - a.reviews_count);
+const featured = [...hiddenGems, ...topA.filter((r) => !hiddenGems.includes(r))].slice(0, 8);
+
+// A few "Top-Rated & Safe" city guides for the homepage (largest first).
+// (Hidden-gems guides have no phase-1 data yet; they appear in later phases.)
+const topRatedGuides = specialPages
+  .filter((p) => p.specialType === 'top_rated_safe')
+  .sort((a, b) => b.items.length - a.items.length)
+  .slice(0, 8);
+
+const siteUrl = new URL('/', Astro.site).href;
+const seoTitle = 'Central Florida Restaurant Health Scores & Dietary Guide';
+const seoDescription =
+  'Health inspection grades, dietary options, and ratings for restaurants across ' +
+  'Central Florida — browse by county, city, and dining district.';
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Central Florida Restaurants',
+  url: siteUrl,
+  description: seoDescription,
+  publisher: { '@id': `${siteUrl}#organization` },
+};
+// Organization is emitted sitewide by Base.astro (publisher, with @id + logo).
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([websiteSchema])}
+  />
+
+  <main>
+    <article>
+      <p class="eyebrow">DBPR-graded · {totalTracked.toLocaleString('en-US')} restaurants · Updated June 2026</p>
+      <h1>Central Florida Restaurant Health Scores &amp; Dietary Guide</h1>
+      <p class="lead">
+        Find where to eat across Central Florida with confidence. This directory pairs official
+        Florida health inspection grades with dietary accommodations and diner ratings for
+        {phase1.length} restaurants &mdash; {totalAGrade} of them currently holding an A grade.
+        Browse by county, city, or one of the region&rsquo;s named dining districts.
+      </p>
+
+      <ul class="filtercards">
+        <li><a class="filtercard" href="#favorites">
+          <span class="fc-mono is-a" aria-hidden="true">A</span>
+          <span class="fc-label"><b>Top-rated &amp; safe</b><span>Grade-A guides</span></span>
+        </a></li>
+        <li><a class="filtercard" href="#featured">
+          <span class="fc-mono" aria-hidden="true">✦</span>
+          <span class="fc-label"><b>Featured picks</b><span>Hidden gems</span></span>
+        </a></li>
+        <li><a class="filtercard" href="#counties">
+          <span class="fc-mono" aria-hidden="true">C</span>
+          <span class="fc-label"><b>Browse by county</b><span>8 counties</span></span>
+        </a></li>
+        <li><a class="filtercard" href="#districts">
+          <span class="fc-mono" aria-hidden="true">N</span>
+          <span class="fc-label"><b>Neighborhoods</b><span>Dining districts</span></span>
+        </a></li>
+      </ul>
+
+      <section id="counties">
+        <h2>Browse by county</h2>
+        <ul class="chiplist">
+          {countyList.map((c) => (
+            <li>
+              <a href={`/${c.slug}-county/`}>{c.name} County <span class="ct">{c.items.length}</span></a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="districts">
+        <h2>Dining districts &amp; neighborhoods</h2>
+        <ul class="chiplist">
+          {districtList.map((d) => (
+            <li>
+              <a href={`/neighborhood/${d.slug}/`}>{d.name} <span class="ct">{d.items.length}</span></a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {topRatedGuides.length > 0 && (
+        <section id="favorites">
+          <h2>Health &amp; local favorites</h2>
+          <ul class="link-list">
+            {topRatedGuides.map((p) => (
+              <li><a href={`${p.url}/`}>Top-Rated, Health-Safe Restaurants in {p.geoName}</a> ({p.items.length})</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section id="featured">
+        <h2>Featured restaurants</h2>
+        <ul class="cards">
+          {featured.map((r) => <RestaurantCard r={r} />)}
+        </ul>
+      </section>
+    </article>
+  </main>
+</Base>

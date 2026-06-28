@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro';
+
+const pageUrl = new URL('/data-sources/', Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+const seoTitle = 'Our Data & Sources';
+const seoDescription =
+  'Exactly what data Central Florida Restaurant Grades uses and where it comes from: Florida DBPR inspection records and Google Maps listings.';
+
+const webPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Our data & sources',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': orgId },
+};
+const datasetSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Dataset',
+  name: 'Central Florida Restaurant Health Inspections & Grades',
+  description:
+    'Health inspection records, computed A–F grades and 0–100 scores, dietary tags, and diner ratings for restaurants across the eight Central Florida (DBPR District 4) counties.',
+  url: pageUrl,
+  spatialCoverage: { '@type': 'Place', name: 'Central Florida, USA' },
+  creator: {
+    '@type': 'GovernmentOrganization',
+    name: 'Florida Department of Business and Professional Regulation, Division of Hotels and Restaurants',
+  },
+  publisher: { '@id': orgId },
+  isAccessibleForFree: true,
+};
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: 'Data & sources', item: pageUrl },
+  ],
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([webPageSchema, datasetSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo; <span>Data &amp; sources</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">Transparency · Data</p>
+      <h1>Our data &amp; sources</h1>
+
+      <div class="prose">
+        <p>A short, linkable summary of exactly what we use and where it comes from:</p>
+        <ul>
+          <li>
+            <strong>Inspection records &amp; licensing</strong> — Florida DBPR, Division of Hotels &amp;
+            Restaurants, public-records extracts (District 4 / Central Florida). The source of every
+            health score, violation, and inspection date.
+          </li>
+          <li>
+            <strong>Ratings, location, hours, categories</strong> — Google Maps / Places listings,
+            matched to each licensed establishment.
+          </li>
+          <li>
+            <strong>Update cadence</strong> — DBPR data is pulled and re-scored on a regular cycle; the
+            &ldquo;last updated&rdquo; date appears on each restaurant page.
+          </li>
+          <li>
+            <strong>What we don&rsquo;t do</strong> — we don&rsquo;t accept payment from restaurants to
+            change scores or placement, and the grade is computed purely from the formula on our
+            methodology page.
+          </li>
+        </ul>
+        <p>
+          See exactly how we turn these sources into A–F grades on our
+          <a href="/methodology/">methodology page</a>.
+        </p>
+      </div>
+
+      <nav class="trustlinks" aria-label="Trust and transparency">
+        <a href="/methodology/">How we grade</a>
+        <a href="/about/">About this guide</a>
+      </nav>
+    </article>
+  </main>
+</Base>

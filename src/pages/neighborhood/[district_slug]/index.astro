@@ -1,0 +1,121 @@
+---
+import Base from '../../../layouts/Base.astro';
+import RestaurantCard from '../../../components/RestaurantCard.astro';
+import { districts } from '../../../lib/data.js';
+import { districtFilters, sortFilters } from '../../../lib/manifest.js';
+import { sortForHub } from '../../../lib/format.js';
+
+// One hub per named food district (Mills 50, Dr. Phillips, etc.).
+export function getStaticPaths() {
+  return districts.map((d) => ({
+    params: { district_slug: d.slug },
+    props: { slug: d.slug, name: d.name, items: d.items },
+  }));
+}
+
+const { slug, name, items } = Astro.props;
+const sorted = [...items].sort(sortForHub);
+const aGrade = items.filter((r) => r.health_grade === 'A').length;
+const pctA = items.length ? Math.round((aGrade / items.length) * 100) : 0;
+const rated = items.filter((r) => Number.isFinite(r.rating));
+const avgRating = rated.length ? (rated.reduce((s, r) => s + r.rating, 0) / rated.length).toFixed(1) : null;
+
+// A district sits within one county — use it for the backlink + breadcrumb.
+const county = { slug: items[0].county_slug, name: items[0].county };
+const pageUrl = new URL(`/neighborhood/${slug}/`, Astro.site).href;
+
+// Dietary filter pages available for this district (reverse links, no orphans).
+const ownFilters = sortFilters(districtFilters.get(slug) || []);
+
+const h1 = `Restaurants in ${name}`;
+const intro =
+  `${name} is a dining district in ${county.name} County, Central Florida. Explore its ` +
+  `${items.length} restaurants below with health inspection grades, dietary options, and diner ` +
+  `ratings — ${aGrade} currently hold an A health grade.`;
+
+const seoTitle = `${name} Restaurants — Central Florida Dining`.slice(0, 60);
+const seoDescription = (
+  `Browse ${items.length} restaurants in the ${name} district of ${county.name} County, ` +
+  `Central Florida — health grades, dietary options, and ratings.`
+).slice(0, 155);
+
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: h1,
+  url: pageUrl,
+  description: seoDescription,
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: sorted.length,
+    itemListElement: sorted.map((r, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`${r.url}/`, Astro.site).href,
+      name: r.name,
+    })),
+  },
+};
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: `${county.name} County`,
+      item: new URL(`/${county.slug}-county/`, Astro.site).href,
+    },
+    { '@type': 'ListItem', position: 3, name, item: pageUrl },
+  ],
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([collectionSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo;
+      <a href={`/${county.slug}-county/`}>{county.name} County</a> &rsaquo;
+      <span>{name}</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">Neighborhood · {county.name} County · Updated June 2026</p>
+      <h1>{h1}</h1>
+      <div class="statrow">
+        <div class="stat"><b>{pctA}%</b><span>Grade A</span></div>
+        {avgRating && <div class="stat"><b>{avgRating}</b><span>Avg rating</span></div>}
+        <div class="stat"><b>{items.length}</b><span>Restaurants</span></div>
+      </div>
+      <p class="lead">{intro}</p>
+
+      {ownFilters.length > 0 && (
+        <section>
+          <h2>Browse {name} by diet &amp; cuisine</h2>
+          <ul class="link-list">
+            {ownFilters.map((p) => (
+              <li>
+                <a href={`${p.url}/`}>{p.label}{p.kind === 'cuisine' ? ' restaurants' : ''}</a> ({p.items.length})
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section>
+        <h2>All {items.length} restaurants</h2>
+        <ul class="cards">
+          {sorted.map((r) => <RestaurantCard r={r} />)}
+        </ul>
+      </section>
+    </article>
+  </main>
+</Base>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://www.centralfloridarestaurants.com/sitemap-index.xml

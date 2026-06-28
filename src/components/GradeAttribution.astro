@@ -1,0 +1,11 @@
+---
+// Site-wide E-E-A-T attribution shown near the grade on detail + special pages.
+const { updated } = Astro.props;
+---
+<div class="attribution">
+  <p>
+    This grade is calculated by us from Florida DBPR public inspection records — Florida does not
+    issue official grades. <a href="/methodology/">How we calculate it →</a>
+  </p>
+  {updated && <p class="updated">Data last updated: {updated}</p>}
+</div>

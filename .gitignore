@@ -1,3 +1,5 @@
 .env
 .dietary_llm_ckpt.json
 __pycache__/
+node_modules
+.astro/

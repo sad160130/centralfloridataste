@@ -1,0 +1,15 @@
+---
+import SpecialPageView from '../../components/SpecialPageView.astro';
+import { specialPages } from '../../lib/manifest.js';
+
+// /[county_slug]-county/worst-health-scores/ — D/F-grade restaurants in the county.
+export function getStaticPaths() {
+  return specialPages
+    .filter((p) => p.specialType === 'worst_health')
+    .map((p) => ({ params: { slug: `${p.geoSlug}-county` }, props: { page: p } }));
+}
+
+const { page } = Astro.props;
+---
+
+<SpecialPageView page={page} />

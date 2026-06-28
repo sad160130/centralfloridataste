@@ -1,0 +1,462 @@
+---
+import Base from '../../../layouts/Base.astro';
+import GradeBadge from '../../../components/GradeBadge.astro';
+import GradeAttribution from '../../../components/GradeAttribution.astro';
+import restaurants from '../../../data/restaurants.json';
+import { cityHubSlugs, districtHubSlugs } from '../../../lib/data.js';
+import { titleCase, formatDate, listJoin } from '../../../lib/format.js';
+
+// One static page per restaurant — only published === true rows are emitted.
+export function getStaticPaths() {
+  return restaurants
+    .filter((r) => r.published === true)
+    .map((r) => ({
+      params: { city_slug: r.city_slug, slug: r.slug },
+      props: { r },
+    }));
+}
+
+const { r } = Astro.props;
+
+/* ---------- derived display values ---------- */
+const cityDisplay = titleCase(r.city);
+const cuisineDisplay = r.cuisine ? titleCase(r.cuisine) : null;
+const dietaryDisplay = Array.isArray(r.dietary)
+  ? r.dietary.map((x) => String(x).replace(/_/g, '-'))
+  : [];
+const hasRating =
+  Number.isFinite(r.rating) && Number.isFinite(r.reviews_count) && r.reviews_count > 0;
+const inspectionDate = formatDate(r.latest_inspection_date);
+const totalViolations =
+  (r.hp_violations || 0) + (r.intermediate_violations || 0) + (r.basic_violations || 0);
+
+// Internal-link guards: only link to hubs that were actually generated.
+const cityHasHub = cityHubSlugs.has(r.city_slug);
+const districtHasHub = !!r.district_slug && districtHubSlugs.has(r.district_slug);
+
+/* ---------- enriched fields (inspection history, contact, nearby) ---------- */
+const history = Array.isArray(r.inspection_history)
+  ? [...r.inspection_history].sort((a, b) => String(b.date).localeCompare(String(a.date)))
+  : [];
+const daysSince = Number.isFinite(r.days_since_inspection) ? r.days_since_inspection : null;
+const pct = Number.isFinite(r.health_percentile) ? r.health_percentile : null;
+const hours = Array.isArray(r.opening_hours) ? r.opening_hours : [];
+const phoneDigits = r.phone ? String(r.phone).replace(/\D/g, '') : null;
+const telHref = phoneDigits
+  ? `+${phoneDigits.length === 10 ? '1' + phoneDigits : phoneDigits}`
+  : null;
+
+// Only link to nearby restaurants whose detail page actually exists (published).
+const p1Urls = new Set();
+for (const x of restaurants) if (x.published === true) p1Urls.add(x.url);
+const nearby = Array.isArray(r.nearby_safer) ? r.nearby_safer : [];
+const showNearby = r.health_grade !== 'A' && nearby.length > 0;
+
+// Trend + recency line, e.g. "Inspections trending: improving · last inspected 47 days ago".
+const trendBits = [];
+if (r.inspection_trend) trendBits.push(`trending: ${r.inspection_trend}`);
+if (daysSince !== null) trendBits.push(`last inspected ${daysSince} day${daysSince === 1 ? '' : 's'} ago`);
+const trendLine = trendBits.length ? `Inspections ${trendBits.join(' · ')}` : null;
+
+/* ---------- indexable prose summary (paraphrased from data) ---------- */
+const sentences = [];
+sentences.push(
+  `${r.name} is${cuisineDisplay ? ` a ${cuisineDisplay}` : ' a'} restaurant` +
+    `${r.address ? ` at ${r.address}` : ''} in ${cityDisplay}` +
+    `${r.county ? `, ${r.county} County` : ''}, in Central Florida.`
+);
+
+if (r.health_grade) {
+  sentences.push(
+    `At its most recent health inspection${inspectionDate ? ` on ${inspectionDate}` : ''}, ` +
+      `it received a grade of ${r.health_grade}` +
+      `${Number.isFinite(r.health_score) ? ` with a score of ${r.health_score} out of 100` : ''}.`
+  );
+  if (totalViolations === 0) {
+    sentences.push('Inspectors recorded no outstanding violations.');
+  } else {
+    const parts = [];
+    if (r.hp_violations) parts.push(`${r.hp_violations} high-priority`);
+    if (r.intermediate_violations) parts.push(`${r.intermediate_violations} intermediate`);
+    if (r.basic_violations) parts.push(`${r.basic_violations} basic`);
+    sentences.push(
+      `The inspection noted ${listJoin(parts)} violation${totalViolations === 1 ? '' : 's'}.`
+    );
+  }
+}
+
+if (pct !== null && r.county) {
+  sentences.push(`By health score, it is safer than ${pct}% of ${r.county} County restaurants.`);
+}
+
+if (hasRating) {
+  sentences.push(
+    `Diners give it an average rating of ${r.rating} stars across ${r.reviews_count} reviews.`
+  );
+}
+if (r.price_level) {
+  sentences.push(`Typical prices fall in the ${r.price_level} range.`);
+}
+if (dietaryDisplay.length) {
+  sentences.push(`Menu options are noted as suitable for ${listJoin(dietaryDisplay)} diners.`);
+}
+if (r.hidden_gem) {
+  sentences.push('It is flagged as a hidden gem — a well-rated spot that flies under the radar.');
+}
+const summary = sentences.join(' ');
+
+/* ---------- SEO title + description ---------- */
+// Keep titles unique: same-name chains in the same city would otherwise collide,
+// so disambiguate those with the street address (title metadata only).
+const titleBaseOf = (x) =>
+  (`${x.name} — ${titleCase(x.city)}, FL` + (x.health_grade ? ` (Grade ${x.health_grade})` : '')).slice(0, 60);
+const titleCounts = new Map();
+for (const x of restaurants) {
+  if (x.phase !== 1) continue;
+  const t = titleBaseOf(x);
+  titleCounts.set(t, (titleCounts.get(t) || 0) + 1);
+}
+const baseTitle = titleBaseOf(r);
+const seoTitle =
+  titleCounts.get(baseTitle) > 1 && r.address
+    ? `${r.name}, ${r.address} — ${cityDisplay}, FL`.slice(0, 60)
+    : baseTitle;
+
+const seoDescription = [
+  `${r.name} in ${cityDisplay}, FL.`,
+  r.health_grade
+    ? `Health grade ${r.health_grade}${Number.isFinite(r.health_score) ? ` (${r.health_score}/100)` : ''}.`
+    : '',
+  cuisineDisplay ? `${cuisineDisplay} cuisine.` : '',
+  hasRating ? `${r.rating}★ from ${r.reviews_count} reviews.` : '',
+].filter(Boolean).join(' ').slice(0, 155);
+
+/* ---------- JSON-LD: Restaurant + BreadcrumbList ---------- */
+const pageUrl = new URL(r.url + '/', Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+// Latest inspection (incl. cited violations) as structured additionalProperty.
+const latest = history[0];
+const inspectionProps = [];
+if (latest) {
+  inspectionProps.push({ '@type': 'PropertyValue', name: 'Latest health inspection date', value: latest.date });
+  if (latest.disposition)
+    inspectionProps.push({ '@type': 'PropertyValue', name: 'Inspection disposition', value: latest.disposition });
+  inspectionProps.push({ '@type': 'PropertyValue', name: 'High-priority violations', value: latest.high ?? 0 });
+  inspectionProps.push({ '@type': 'PropertyValue', name: 'Intermediate violations', value: latest.intermediate ?? 0 });
+  inspectionProps.push({ '@type': 'PropertyValue', name: 'Basic violations', value: latest.basic ?? 0 });
+  for (const v of latest.violations || [])
+    inspectionProps.push({ '@type': 'PropertyValue', name: `Violation ${v.code}: ${v.description}`, value: v.count });
+}
+
+const restaurantSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Restaurant',
+  name: r.name,
+  url: pageUrl,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: r.address || undefined,
+    addressLocality: cityDisplay,
+    addressRegion: 'FL',
+    addressCountry: 'US',
+  },
+  geo:
+    Number.isFinite(r.lat) && Number.isFinite(r.lng)
+      ? { '@type': 'GeoCoordinates', latitude: r.lat, longitude: r.lng }
+      : undefined,
+  servesCuisine: cuisineDisplay || undefined,
+  priceRange: r.price_level || undefined,
+  telephone: r.phone || undefined,
+  hasMap: r.google_maps_url || undefined,
+  aggregateRating: hasRating
+    ? {
+        '@type': 'AggregateRating',
+        ratingValue: r.rating,
+        reviewCount: r.reviews_count,
+        bestRating: 5,
+        worstRating: 1,
+      }
+    : undefined,
+  additionalProperty: inspectionProps.length ? inspectionProps : undefined,
+  publisher: { '@id': orgId },
+  dateModified: r.latest_inspection_date || undefined,
+};
+
+const crumbs = [
+  { name: 'Home', item: new URL('/', Astro.site).href },
+  { name: `${r.county} County`, item: new URL(`/${r.county_slug}-county/`, Astro.site).href },
+];
+if (cityHasHub) {
+  crumbs.push({ name: cityDisplay, item: new URL(`/${r.city_slug}/`, Astro.site).href });
+} else {
+  crumbs.push({ name: cityDisplay });
+}
+crumbs.push({ name: r.name, item: pageUrl });
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: c.name,
+    ...(c.item ? { item: c.item } : {}),
+  })),
+};
+---
+
+<Base title={seoTitle} description={seoDescription} ogType="article">
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([restaurantSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo;
+      <a href={`/${r.county_slug}-county/`}>{r.county} County</a> &rsaquo;
+      {cityHasHub ? <a href={`/${r.city_slug}/`}>{cityDisplay}</a> : <span>{cityDisplay}</span>} &rsaquo;
+      <span>{r.name}</span>
+    </nav>
+
+    <article>
+      <div class="detail-head">
+        <GradeBadge grade={r.health_grade} score={r.health_score} size="lg" />
+        <h1>
+          {r.name}
+          {r.hidden_gem && <span class="badge">★ Hidden gem</span>}
+        </h1>
+      </div>
+
+      <GradeAttribution updated={inspectionDate || 'June 2026'} />
+
+      <p>{summary}</p>
+
+      {trendLine && <p class="trend">{trendLine}</p>}
+
+      {(r.directions_url || telHref) && (
+        <p class="actions">
+          {r.directions_url && (
+            <a class="btn" href={r.directions_url} target="_blank" rel="noopener">Get directions</a>
+          )}
+          {telHref && <a class="btn btn-alt" href={`tel:${telHref}`}>Call {r.phone}</a>}
+        </p>
+      )}
+
+      <section>
+        <h2>Restaurant details</h2>
+        <dl class="facts">
+          {r.health_grade && (
+            <>
+              <dt>Health grade</dt>
+              <dd>
+                {r.health_grade}
+                {Number.isFinite(r.health_score) && ` (${r.health_score}/100)`}
+              </dd>
+            </>
+          )}
+          {r.health_grade && (
+            <>
+              <dt>Violations</dt>
+              <dd>
+                {totalViolations === 0
+                  ? 'None recorded'
+                  : `${totalViolations} total — ` +
+                    [
+                      r.hp_violations ? `${r.hp_violations} high-priority` : null,
+                      r.intermediate_violations ? `${r.intermediate_violations} intermediate` : null,
+                      r.basic_violations ? `${r.basic_violations} basic` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+              </dd>
+            </>
+          )}
+          {r.address && (
+            <>
+              <dt>Address</dt>
+              <dd>{r.address}, {cityDisplay}, FL</dd>
+            </>
+          )}
+          {cuisineDisplay && (
+            <>
+              <dt>Cuisine</dt>
+              <dd>{cuisineDisplay}</dd>
+            </>
+          )}
+          {Array.isArray(r.categories) && r.categories.length > 0 && (
+            <>
+              <dt>Categories</dt>
+              <dd>{r.categories.join(', ')}</dd>
+            </>
+          )}
+          {r.price_level && (
+            <>
+              <dt>Price</dt>
+              <dd>{r.price_level}</dd>
+            </>
+          )}
+          {hasRating && (
+            <>
+              <dt>Rating</dt>
+              <dd>{r.rating} stars ({r.reviews_count} reviews)</dd>
+            </>
+          )}
+          {r.neighborhood && (
+            <>
+              <dt>Neighborhood</dt>
+              <dd>{r.neighborhood}</dd>
+            </>
+          )}
+          {r.seats && Number(r.seats) > 0 && (
+            <>
+              <dt>Seats</dt>
+              <dd>{r.seats}</dd>
+            </>
+          )}
+          {r.phone && (
+            <>
+              <dt>Phone</dt>
+              <dd><a href={`tel:${telHref}`}>{r.phone}</a></dd>
+            </>
+          )}
+          {r.website && (
+            <>
+              <dt>Website</dt>
+              <dd>
+                <a href={r.website} rel="nofollow noopener" target="_blank">
+                  Official website
+                </a>
+              </dd>
+            </>
+          )}
+        </dl>
+      </section>
+
+      {hours.length > 0 && (
+        <section>
+          <h2>Opening hours</h2>
+          <dl class="hours">
+            {hours.map((h) => (
+              <>
+                <dt>{h.day}</dt>
+                <dd>{h.hours}</dd>
+              </>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      {history.length > 0 && (
+        <section>
+          <h2>Inspection history</h2>
+          <p class="src">
+            The following records are from Florida DBPR public inspection records, most recent first.
+          </p>
+          <ol class="timeline">
+            {history.map((v) => (
+              <li class="visit">
+                <p class="visit-head">
+                  <strong>{formatDate(v.date) || v.date}</strong>
+                  {v.type && <span> · {v.type}</span>}
+                </p>
+                {v.disposition && <p class="visit-disp">{v.disposition}</p>}
+                <p class="visit-counts">
+                  {v.high || 0} high-priority · {v.intermediate || 0} intermediate · {v.basic || 0} basic
+                </p>
+                {Array.isArray(v.violations) && v.violations.length > 0 ? (
+                  <ul class="viol-list">
+                    {v.violations.map((vi) => (
+                      <li>{vi.code} — {vi.description}{vi.count > 1 ? ` (×${vi.count})` : ''}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p class="viol-none">No violations cited.</p>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {showNearby && (
+        <section>
+          <h2>Safer options nearby</h2>
+          <p>Higher-graded restaurants close to {r.name}, by Florida DBPR grade:</p>
+          <ul class="saferlist">
+            {nearby.map((n) => (
+              <li class="safer">
+                <GradeBadge grade={n.grade} size="sm" />
+                <div class="safer-body">
+                  {p1Urls.has(n.url) ? (
+                    <a class="safer-name" href={`${n.url}/`}>{n.name}</a>
+                  ) : (
+                    <span class="safer-name">{n.name}</span>
+                  )}
+                  <p class="safer-meta">
+                    {Number.isFinite(n.rating) && <span>{n.rating}★</span>}
+                    {Number.isFinite(n.distance_mi) && (
+                      <span>{n.distance_mi === 0 ? 'nearby' : `${Number(n.distance_mi).toFixed(1)} mi away`}</span>
+                    )}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <nav class="hub-links" aria-label="Explore more">
+        <strong>Explore more:</strong>
+        <a href={`/${r.county_slug}-county/`}>{r.county} County</a>
+        {cityHasHub && <a href={`/${r.city_slug}/`}>{cityDisplay}</a>}
+        {districtHasHub && <a href={`/neighborhood/${r.district_slug}/`}>{r.district}</a>}
+      </nav>
+    </article>
+  </main>
+
+  <style>
+    .detail-head { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; margin: 0 0 0.6rem; }
+    .detail-head h1 { margin: 0; }
+    .detail-head h1 .badge { margin-left: 0.5rem; }
+    .trend { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.03em; color: var(--ink-2); margin: 0 0 1.1rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 1.6rem; }
+    .btn {
+      display: inline-block; background: var(--citrus); color: var(--ink); text-decoration: none;
+      padding: 0.6rem 1.1rem; border-radius: 2px; font-size: 0.86rem; font-weight: 700;
+      font-family: var(--body); transition: filter 0.15s ease;
+    }
+    .btn:hover { filter: brightness(0.95); }
+    .btn-alt { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+    .btn-alt:hover { background: #f3f0e9; }
+    dl.hours { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1.5rem; margin: 0; font-size: 0.92rem; }
+    dl.hours dt { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--mute); }
+    dl.hours dd { margin: 0; }
+    .src { font-size: 0.84rem; color: var(--mute); font-style: italic; margin: 0.3rem 0 0; }
+
+    /* inspection history — squared report timeline */
+    ol.timeline { list-style: none; padding: 0; margin: 1.25rem 0 0; display: grid; gap: 1rem; }
+    .visit {
+      position: relative; padding: 1rem 1.15rem; background: var(--surface);
+      border: 1px solid var(--line); border-left: 4px solid var(--ink); border-radius: 2px;
+    }
+    .visit-head { margin: 0; font-family: var(--mono); font-weight: 600; font-size: 0.96rem; }
+    .visit-head span { font-family: var(--body); font-weight: 400; font-size: 0.82rem; color: var(--mute); }
+    .visit-disp { margin: 0.25rem 0; color: var(--ink-2); font-size: 0.9rem; }
+    .visit-counts { margin: 0.3rem 0 0; font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mute); }
+    ul.viol-list { margin: 0.55rem 0 0; padding-left: 1.1rem; font-size: 0.88rem; color: var(--ink-2); }
+    ul.viol-list li { margin: 0.18rem 0; }
+    ul.viol-list li::marker { color: var(--mute); }
+    .viol-none { font-family: var(--mono); font-size: 0.82rem; color: var(--g-a); margin: 0.3rem 0 0; }
+
+    /* safer options nearby */
+    ul.saferlist { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .safer { display: flex; align-items: center; gap: 0.7rem; background: var(--surface); border: 1px solid var(--line); border-radius: 2px; padding: 0.7rem 0.8rem; }
+    .safer-body { min-width: 0; }
+    .safer-name { font-family: var(--display); font-weight: 700; font-size: 1rem; color: var(--ink); text-decoration: none; display: block; }
+    a.safer-name:hover { color: var(--citrus-ink); }
+    .safer-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.15rem 0 0; font-family: var(--mono); font-size: 0.74rem; color: var(--mute); }
+  </style>
+</Base>

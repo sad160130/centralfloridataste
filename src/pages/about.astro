@@ -1,0 +1,67 @@
+---
+import Base from '../layouts/Base.astro';
+
+const pageUrl = new URL('/about/', Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+const seoTitle = 'About This Guide';
+const seoDescription =
+  'Central Florida Restaurant Grades is an independent guide that turns Florida DBPR public inspection records into clear A–F restaurant health grades.';
+
+const aboutSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'About this guide',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': orgId },
+};
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: 'About', item: pageUrl },
+  ],
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([aboutSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo; <span>About</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">Transparency · About</p>
+      <h1>About this guide</h1>
+
+      <div class="prose">
+        <p>
+          Central Florida Restaurant Grades is an independent guide built to answer one question Florida
+          makes surprisingly hard: <em>is this restaurant clean?</em> The state inspects every
+          restaurant but never grades them, and the reports are scattered across a public database few
+          diners ever open. We pull those public records together, score them by a consistent
+          <a href="/methodology/">published method</a>, and pair them with dietary options and diner
+          ratings so you can decide where to eat with full information.
+        </p>
+        <p>
+          This site is run by [YOUR NAME / ORG]. [One or two honest sentences on why you built it.]
+          We&rsquo;re not affiliated with the State of Florida or DBPR. Questions, corrections, or
+          partnership inquiries: [CONTACT EMAIL].
+        </p>
+      </div>
+
+      <nav class="trustlinks" aria-label="Trust and transparency">
+        <a href="/methodology/">How we grade</a>
+        <a href="/data-sources/">Data &amp; sources</a>
+      </nav>
+    </article>
+  </main>
+</Base>

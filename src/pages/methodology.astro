@@ -1,0 +1,121 @@
+---
+import Base from '../layouts/Base.astro';
+
+const pageUrl = new URL('/methodology/', Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+const seoTitle = 'How We Grade Restaurants — Methodology';
+const seoDescription =
+  'How Central Florida Restaurant Grades calculates A–F health scores from Florida DBPR public inspection records. Florida does not issue official grades.';
+
+const webPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'How we grade restaurants',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': orgId },
+};
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: 'Methodology', item: pageUrl },
+  ],
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([webPageSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo; <span>Methodology</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">Transparency · How we grade</p>
+      <h1>How we grade restaurants</h1>
+
+      <div class="prose">
+        <h2>The most important thing to know first</h2>
+        <p>
+          Florida does not assign letter grades or scores to restaurants. The state&rsquo;s Department
+          of Business and Professional Regulation (DBPR) inspects food establishments and records
+          violations, but it deliberately does not rate or grade them, because each inspection is a
+          snapshot of one moment. <strong>The A–F grades and 0–100 scores on this site are calculated
+          by us from DBPR&rsquo;s public inspection records using the published method below. They are
+          not official Florida grades.</strong> We show our exact method so you can judge it for
+          yourself.
+        </p>
+
+        <h2>Where the inspection data comes from</h2>
+        <p>
+          We use the DBPR Division of Hotels &amp; Restaurants public-records extracts for District 4,
+          which covers the eight Central Florida counties: Orange, Brevard, Volusia, Seminole, Osceola,
+          Lake, St. Lucie, and Indian River. DBPR refreshes these files regularly. Each record includes
+          the establishment&rsquo;s licensed name and address, every inspection this fiscal year, the
+          disposition of each visit, and the count of violations by severity tier — high-priority,
+          intermediate, and basic. See our <a href="/data-sources/">data &amp; sources</a> page for the
+          full list.
+        </p>
+
+        <h2>How we calculate the score</h2>
+        <p>Every restaurant starts at 100 points. From its most recent completed inspection we subtract:</p>
+        <ul>
+          <li>8 points per high-priority violation (the items most directly tied to foodborne illness — temperature control, cross-contamination, pest activity, hygiene)</li>
+          <li>3 points per intermediate violation</li>
+          <li>1 point per basic violation</li>
+          <li>An additional penalty when the inspection ended in enforcement: a warning, an administrative complaint, or an emergency closure order</li>
+          <li>A further deduction if the restaurant had any emergency closure in the trailing year, even if since corrected</li>
+        </ul>
+        <p>
+          The result is clamped to a 0–100 range, and we keep the raw number. Grades follow standard
+          bands: <strong>A is 90+, B is 80–89, C is 70–79, D is 60–69, and F is below 60.</strong> A
+          restaurant with no completed inspection in the current period is marked <strong>Not Rated</strong>
+          rather than given a default grade.
+        </p>
+
+        <h2>How we match restaurants to ratings and locations</h2>
+        <p>
+          DBPR data has no map coordinates, ratings, or hours, so we match each licensed establishment
+          to its Google Maps listing using its name, address, and location. We verify every match on
+          both location and name agreement, and <strong>we only publish matches we&rsquo;re confident
+          in</strong> — restaurants whose match is uncertain are held back rather than shown with
+          possibly-wrong information. Across our publishable list, about 97% of active establishments
+          had an inspection on file to score.
+        </p>
+
+        <h2>How dietary tags are assigned</h2>
+        <p>
+          Dietary accommodations (vegan, vegetarian, gluten-free, halal, and so on) come first from a
+          restaurant&rsquo;s own stated offerings on Google, which we treat as the strongest signal. For
+          dimensions that aren&rsquo;t stated outright, we apply an automated classification pass over
+          the restaurant&rsquo;s name and cuisine. These tags indicate that a place <em>offers options</em>
+          for a given diet — not that it is exclusively that — and they&rsquo;re a guide, not a
+          guarantee. Always confirm with the restaurant for strict dietary or allergy needs.
+        </p>
+
+        <h2>Limitations — read these</h2>
+        <p>
+          An inspection is a snapshot; conditions change day to day, and a single report may not reflect
+          a restaurant&rsquo;s long-term operation. Our score is a heuristic built on top of that public
+          data, not a medical or official safety determination. Google ratings and counts shift over
+          time. We refresh from the source on a regular cycle, and each restaurant page shows when its
+          data was last updated. <strong>Found something wrong?</strong> Tell us at [CONTACT EMAIL] and
+          we&rsquo;ll correct it.
+        </p>
+      </div>
+
+      <nav class="trustlinks" aria-label="Trust and transparency">
+        <a href="/data-sources/">Data &amp; sources</a>
+        <a href="/about/">About this guide</a>
+      </nav>
+    </article>
+  </main>
+</Base>

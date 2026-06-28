@@ -1,0 +1,172 @@
+---
+import Base from '../layouts/Base.astro';
+import RestaurantCard from './RestaurantCard.astro';
+import { cityHubSlugs, districtHubSlugs } from '../lib/data.js';
+import { cityFilters, countyFilters, districtFilters, sortFilters } from '../lib/manifest.js';
+import { sortForHub } from '../lib/format.js';
+
+const { page } = Astro.props;
+const { geoType, geoSlug, geoName, kind, flag, label, items, url } = page;
+
+const sorted = [...items].sort(sortForHub);
+const sample = items[0];
+
+// County context (for breadcrumb + backlink). For a county page it's self.
+const county =
+  geoType === 'county'
+    ? { slug: geoSlug, name: geoName }
+    : { slug: sample.county_slug, name: sample.county };
+
+// Does this area's own hub exist?
+const cityHasHub = geoType === 'city' && cityHubSlugs.has(geoSlug);
+const districtHasHub = geoType === 'district' && districtHubSlugs.has(geoSlug);
+
+const geoDisplay = geoType === 'county' ? `${geoName} County` : geoName;
+
+// Where "all restaurants" backlink points: the area's hub, else the county hub.
+let hubUrl, hubText;
+if (geoType === 'county') {
+  hubUrl = `/${geoSlug}-county/`;
+  hubText = `All ${geoName} County restaurants`;
+} else if (geoType === 'district') {
+  hubUrl = `/neighborhood/${geoSlug}/`;
+  hubText = `All ${geoName} restaurants`;
+} else if (cityHasHub) {
+  hubUrl = `/${geoSlug}/`;
+  hubText = `All ${geoName} restaurants`;
+} else {
+  hubUrl = `/${county.slug}-county/`;
+  hubText = `All ${county.name} County restaurants`;
+}
+
+/* ---------- copy ---------- */
+const h1 = `${label} Restaurants in ${geoDisplay}`;
+const dietPhrase = flag === 'healthy' ? 'healthy' : label.toLowerCase();
+const intro =
+  kind === 'cuisine'
+    ? `Discover ${items.length} ${label.toLowerCase()} ${items.length === 1 ? 'restaurant' : 'restaurants'} in ${geoDisplay}, Central Florida. Every listing includes its latest Florida health inspection grade, dietary options, and diner ratings to help you choose.`
+    : `Browse ${items.length} ${items.length === 1 ? 'restaurant' : 'restaurants'} in ${geoDisplay}, Central Florida, that offer ${dietPhrase} options. Each listing shows its latest health inspection grade and diner ratings.`;
+
+const seoTitle = (
+  page.disambiguate && geoType === 'district'
+    ? `${label} Restaurants in ${geoName} Neighborhood, FL`
+    : page.disambiguate && kind === 'cuisine'
+      ? `${label} Cuisine Restaurants in ${geoDisplay}, FL`
+      : `${label} Restaurants in ${geoDisplay}, FL`
+).slice(0, 60);
+const seoDescription = (
+  `${label} restaurants in ${geoDisplay}, Central Florida — ${items.length} listings ` +
+  `with health inspection grades and diner ratings.`
+).slice(0, 155);
+
+const pageUrl = new URL(`${url}/`, Astro.site).href;
+
+/* ---------- related filters (same area, excluding self) ---------- */
+const geoIndex =
+  geoType === 'city' ? cityFilters : geoType === 'county' ? countyFilters : districtFilters;
+const siblings = sortFilters((geoIndex.get(geoSlug) || []).filter((p) => p.url !== url));
+
+/* ---------- JSON-LD: CollectionPage + ItemList + BreadcrumbList ---------- */
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: h1,
+  url: pageUrl,
+  description: seoDescription,
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: sorted.length,
+    itemListElement: sorted.map((r, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`${r.url}/`, Astro.site).href,
+      name: r.name,
+    })),
+  },
+};
+
+const crumbs = [
+  { name: 'Home', item: new URL('/', Astro.site).href },
+  { name: `${county.name} County`, item: new URL(`/${county.slug}-county/`, Astro.site).href },
+];
+if (geoType === 'city') {
+  crumbs.push(
+    cityHasHub ? { name: geoName, item: new URL(`/${geoSlug}/`, Astro.site).href } : { name: geoName }
+  );
+} else if (geoType === 'district') {
+  crumbs.push({ name: geoName, item: new URL(`/neighborhood/${geoSlug}/`, Astro.site).href });
+}
+crumbs.push({ name: `${label} Restaurants`, item: pageUrl });
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: c.name,
+    ...(c.item ? { item: c.item } : {}),
+  })),
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([collectionSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo;
+      <a href={`/${county.slug}-county/`}>{county.name} County</a> &rsaquo;
+      {geoType === 'city' &&
+        (cityHasHub ? (
+          <>
+            <a href={`/${geoSlug}/`}>{geoName}</a> &rsaquo;
+          </>
+        ) : (
+          <>
+            <span>{geoName}</span> &rsaquo;
+          </>
+        ))}
+      {geoType === 'district' && (
+        <>
+          <a href={`/neighborhood/${geoSlug}/`}>{geoName}</a> &rsaquo;
+        </>
+      )}
+      <span>{label} Restaurants</span>
+    </nav>
+
+    <article>
+      <h1>{h1}</h1>
+      <p>{intro}</p>
+
+      <section>
+        <h2>{items.length} {label.toLowerCase()} {items.length === 1 ? 'restaurant' : 'restaurants'}</h2>
+        <ul class="cards">
+          {sorted.map((r) => <RestaurantCard r={r} />)}
+        </ul>
+      </section>
+
+      {siblings.length > 0 && (
+        <section>
+          <h2>Related guides in {geoDisplay}</h2>
+          <ul class="link-list">
+            {siblings.map((p) => (
+              <li>
+                <a href={`${p.url}/`}>{p.label}{p.kind === 'cuisine' ? ' restaurants' : ''}</a> ({p.items.length})
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <nav class="hub-links" aria-label="Explore more">
+        <strong>Explore more:</strong>
+        <a href={hubUrl}>{hubText}</a>
+      </nav>
+    </article>
+  </main>
+</Base>

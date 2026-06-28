@@ -1,0 +1,160 @@
+---
+import Base from '../layouts/Base.astro';
+import RestaurantCard from './RestaurantCard.astro';
+import GradeAttribution from './GradeAttribution.astro';
+import { cityHubSlugs } from '../lib/data.js';
+
+const { page } = Astro.props;
+const { specialType, geoType, geoSlug, geoName, items, url } = page;
+
+const sample = items[0];
+const county =
+  geoType === 'county'
+    ? { slug: geoSlug, name: geoName }
+    : { slug: sample.county_slug, name: sample.county };
+const cityHasHub = geoType === 'city' && cityHubSlugs.has(geoSlug);
+const geoDisplay = geoType === 'county' ? `${geoName} County` : geoName;
+
+// Sort: rating-led for gems/top-rated; lowest health score first for worst.
+const rank = { F: 0, D: 1, C: 2, B: 3, A: 4 };
+const sorted = [...items].sort((a, b) => {
+  if (specialType === 'worst_health') {
+    const sa = Number.isFinite(a.health_score) ? a.health_score : 999;
+    const sb = Number.isFinite(b.health_score) ? b.health_score : 999;
+    if (sa !== sb) return sa - sb;
+    return (rank[a.health_grade] ?? 9) - (rank[b.health_grade] ?? 9);
+  }
+  const ra = Number.isFinite(a.rating) ? a.rating : -1;
+  const rb = Number.isFinite(b.rating) ? b.rating : -1;
+  if (rb !== ra) return rb - ra;
+  return (b.reviews_count || 0) - (a.reviews_count || 0);
+});
+
+const n = items.length;
+const plural = n === 1 ? 'restaurant' : 'restaurants';
+
+/* ---------- per-type copy ---------- */
+let h1, intro, crumbLabel;
+if (specialType === 'hidden_gems') {
+  h1 = `Hidden Gem Restaurants in ${geoDisplay}`;
+  crumbLabel = 'Hidden Gems';
+  intro = `These ${n} ${geoDisplay} ${plural} earn 4.5 stars or higher from diners yet have fewer than 200 reviews — well-loved locally but still under the radar. Each listing includes its latest Florida health inspection grade and rating.`;
+} else if (specialType === 'top_rated_safe') {
+  h1 = `Top-Rated, Health-Safe Restaurants in ${geoDisplay}`;
+  crumbLabel = 'Top-Rated & Safe';
+  intro = `These ${n} ${geoDisplay} ${plural} pass Florida health inspections with an A grade and earn strong diner ratings — a clean kitchen and a meal people love. Sorted by rating.`;
+} else {
+  h1 = `Restaurants With the Lowest Health Scores in ${geoDisplay}`;
+  crumbLabel = 'Lowest Health Scores';
+  intro = `The following ${n} ${plural} in ${geoDisplay} received a health grade of D or F at their most recent inspection, according to Florida Department of Business and Professional Regulation (DBPR) public inspection records. Each listing shows its grade, score, and violation counts, ordered from the lowest score.`;
+}
+
+const showViolations = specialType === 'worst_health';
+
+const seoTitle = h1.slice(0, 60);
+const seoDescription = (
+  specialType === 'worst_health'
+    ? `${geoDisplay} restaurants with a D or F health grade per Florida DBPR records — ${n} listings with scores and violation counts.`
+    : `${crumbLabel}: ${n} ${geoDisplay} ${plural} with health inspection grades and diner ratings.`
+).slice(0, 155);
+
+const pageUrl = new URL(`${url}/`, Astro.site).href;
+
+// Back to hub: the area's own hub, else its county hub.
+let hubUrl, hubText;
+if (geoType === 'county') {
+  hubUrl = `/${geoSlug}-county/`;
+  hubText = `All ${geoName} County restaurants`;
+} else if (cityHasHub) {
+  hubUrl = `/${geoSlug}/`;
+  hubText = `All ${geoName} restaurants`;
+} else {
+  hubUrl = `/${county.slug}-county/`;
+  hubText = `All ${county.name} County restaurants`;
+}
+
+/* ---------- JSON-LD ---------- */
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: h1,
+  url: pageUrl,
+  description: seoDescription,
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: sorted.length,
+    itemListElement: sorted.map((r, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`${r.url}/`, Astro.site).href,
+      name: r.name,
+    })),
+  },
+};
+
+const crumbs = [
+  { name: 'Home', item: new URL('/', Astro.site).href },
+  { name: `${county.name} County`, item: new URL(`/${county.slug}-county/`, Astro.site).href },
+];
+if (geoType === 'city') {
+  crumbs.push(
+    cityHasHub ? { name: geoName, item: new URL(`/${geoSlug}/`, Astro.site).href } : { name: geoName }
+  );
+}
+crumbs.push({ name: crumbLabel, item: pageUrl });
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: c.name,
+    ...(c.item ? { item: c.item } : {}),
+  })),
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([collectionSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo;
+      <a href={`/${county.slug}-county/`}>{county.name} County</a> &rsaquo;
+      {geoType === 'city' &&
+        (cityHasHub ? (
+          <>
+            <a href={`/${geoSlug}/`}>{geoName}</a> &rsaquo;
+          </>
+        ) : (
+          <>
+            <span>{geoName}</span> &rsaquo;
+          </>
+        ))}
+      <span>{crumbLabel}</span>
+    </nav>
+
+    <article>
+      <h1>{h1}</h1>
+      <p>{intro}</p>
+
+      <GradeAttribution />
+
+      <section>
+        <ul class="cards">
+          {sorted.map((r) => <RestaurantCard r={r} showViolations={showViolations} />)}
+        </ul>
+      </section>
+
+      <nav class="hub-links" aria-label="Explore more">
+        <strong>Explore more:</strong>
+        <a href={hubUrl}>{hubText}</a>
+      </nav>
+    </article>
+  </main>
+</Base>

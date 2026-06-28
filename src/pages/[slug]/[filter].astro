@@ -1,0 +1,20 @@
+---
+import FilterPageView from '../../components/FilterPageView.astro';
+import { filterPages } from '../../lib/manifest.js';
+
+// Dietary × city, dietary × county, and cuisine × city — all 2-segment URLs
+// (/{slug}/{filter}/), driven by the manifest. District filters live under
+// /neighborhood/ in a sibling route. URLs come verbatim from the manifest.
+export function getStaticPaths() {
+  return filterPages
+    .filter((p) => p.geoType === 'city' || p.geoType === 'county')
+    .map((p) => {
+      const segs = p.url.split('/').filter(Boolean); // [slug, filter]
+      return { params: { slug: segs[0], filter: segs[1] }, props: { page: p } };
+    });
+}
+
+const { page } = Astro.props;
+---
+
+<FilterPageView page={page} />

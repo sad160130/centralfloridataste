@@ -1,0 +1,15 @@
+---
+// Signature: a bold SQUARE inspection placard — grade letter + 0–100 score in
+// mono, on the grade color. Styling is global (Base.astro) so every page inherits.
+const { grade, score, size = 'md' } = Astro.props;
+const g = String(grade ?? '').toUpperCase();
+const known = ['A', 'B', 'C', 'D', 'F'].includes(g);
+const hasScore = Number.isFinite(score);
+const label = known
+  ? `Health grade ${g}${hasScore ? `, score ${score} out of 100` : ''}`
+  : 'Health grade not available';
+---
+<span class={`placard pl-${size} gr-${known ? g : 'NA'}`} role="img" aria-label={label}>
+  <span class="pl-letter" aria-hidden="true">{known ? g : '—'}</span>
+  {hasScore && <span class="pl-score" aria-hidden="true">{score}</span>}
+</span>

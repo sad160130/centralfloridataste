@@ -1,0 +1,203 @@
+---
+import Base from '../../layouts/Base.astro';
+import RestaurantCard from '../../components/RestaurantCard.astro';
+import { counties, cities } from '../../lib/data.js';
+import { countyFilters, cityFilters, sortFilters, orphanCityFiltersForCounty, specialByCity, specialByCounty } from '../../lib/manifest.js';
+import { titleCase, sortForHub } from '../../lib/format.js';
+
+// County hubs (/[county_slug]-county/) and city hubs (/[city_slug]/) both live at
+// the root as single dynamic segments — Astro permits one dynamic route per path
+// position, so they're generated together here and branched on `type`.
+export function getStaticPaths() {
+  const paths = [];
+  for (const c of counties) {
+    paths.push({
+      params: { slug: `${c.slug}-county` },
+      props: { type: 'county', slug: c.slug, name: c.name, items: c.items },
+    });
+  }
+  for (const c of cities) {
+    paths.push({
+      params: { slug: c.slug },
+      props: { type: 'city', slug: c.slug, name: c.name, items: c.items },
+    });
+  }
+  return paths;
+}
+
+const { type, slug, name, items } = Astro.props;
+const isCounty = type === 'county';
+
+const sorted = [...items].sort(sortForHub);
+const aGrade = items.filter((r) => r.health_grade === 'A').length;
+const pctA = items.length ? Math.round((aGrade / items.length) * 100) : 0;
+const rated = items.filter((r) => Number.isFinite(r.rating));
+const avgRating = rated.length ? (rated.reduce((s, r) => s + r.rating, 0) / rated.length).toFixed(1) : null;
+const displayName = isCounty ? name : titleCase(name);
+
+// City hubs sit under their county; county hubs link down to their city hubs.
+const countyOfCity = isCounty ? null : { slug: items[0].county_slug, name: items[0].county };
+const cityHubsInCounty = isCounty
+  ? cities
+      .filter((c) => c.items[0].county_slug === slug)
+      .sort((a, b) => b.items.length - a.items.length)
+  : [];
+
+// Dietary/cuisine filter pages available for this area (reverse links, no orphans).
+const ownFilters = sortFilters((isCounty ? countyFilters.get(slug) : cityFilters.get(slug)) || []);
+// On a county hub, also surface filter pages for its cities that have no hub.
+const orphanCityFilterGroups = isCounty ? orphanCityFiltersForCounty(slug) : [];
+
+// Health-score "special" pages for this area.
+const specials = (isCounty ? specialByCounty.get(slug) : specialByCity.get(slug)) || [];
+
+const pageUrl = new URL(isCounty ? `/${slug}-county/` : `/${slug}/`, Astro.site).href;
+
+const h1 = isCounty ? `Restaurants in ${displayName} County` : `Restaurants in ${displayName}`;
+const intro = isCounty
+  ? `Explore ${items.length} restaurants across ${displayName} County in Central Florida, each with its latest health inspection grade, dietary accommodations, and diner ratings. ${aGrade} currently hold an A health grade. Use the list below to compare scores and pick where to eat.`
+  : `Explore ${items.length} restaurants in ${displayName}, ${countyOfCity.name} County, Central Florida, with health inspection grades, dietary options, and diner ratings. ${aGrade} currently hold an A health grade.`;
+
+const seoTitle = (
+  isCounty
+    ? `${displayName} County Restaurants — Health Grades`
+    : `${displayName}, FL Restaurants — Health Grades`
+).slice(0, 60);
+const seoDescription = (
+  `Browse ${items.length} restaurants in ${displayName}${isCounty ? ' County' : ''}, ` +
+  `Central Florida — health inspection grades, dietary options, and ratings.`
+).slice(0, 155);
+
+/* ---------- JSON-LD: CollectionPage + ItemList + BreadcrumbList ---------- */
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: h1,
+  url: pageUrl,
+  description: seoDescription,
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: sorted.length,
+    itemListElement: sorted.map((r, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`${r.url}/`, Astro.site).href,
+      name: r.name,
+    })),
+  },
+};
+
+const crumbs = [{ name: 'Home', item: new URL('/', Astro.site).href }];
+if (!isCounty) {
+  crumbs.push({
+    name: `${countyOfCity.name} County`,
+    item: new URL(`/${countyOfCity.slug}-county/`, Astro.site).href,
+  });
+}
+crumbs.push({ name: isCounty ? `${displayName} County` : displayName, item: pageUrl });
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: c.name,
+    item: c.item,
+  })),
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([collectionSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo;
+      {!isCounty && (
+        <>
+          <a href={`/${countyOfCity.slug}-county/`}>{countyOfCity.name} County</a> &rsaquo;
+        </>
+      )}
+      <span>{isCounty ? `${displayName} County` : displayName}</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">{isCounty ? 'County hub' : 'City hub'} · Updated June 2026</p>
+      <h1>{h1}</h1>
+      <div class="statrow">
+        <div class="stat"><b>{pctA}%</b><span>Grade A</span></div>
+        {avgRating && <div class="stat"><b>{avgRating}</b><span>Avg rating</span></div>}
+        <div class="stat"><b>{items.length}</b><span>Restaurants</span></div>
+        {isCounty && cityHubsInCounty.length > 0 && (
+          <div class="stat"><b>{cityHubsInCounty.length}</b><span>Cities</span></div>
+        )}
+      </div>
+      <p class="lead">{intro}</p>
+
+      {isCounty && cityHubsInCounty.length > 0 && (
+        <section>
+          <h2>Cities in {displayName} County</h2>
+          <ul class="chiplist">
+            {cityHubsInCounty.map((c) => (
+              <li><a href={`/${c.slug}/`}>{titleCase(c.name)} <span class="ct">{c.items.length}</span></a></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {specials.length > 0 && (
+        <section>
+          <h2>Health &amp; local favorites</h2>
+          <ul class="link-list">
+            {specials.map((p) => (
+              <li><a href={`${p.url}/`}>{p.label} in {p.geoName}{p.geoType === 'county' ? ' County' : ''}</a> ({p.items.length})</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {ownFilters.length > 0 && (
+        <section>
+          <h2>Browse {displayName}{isCounty ? ' County' : ''} by diet &amp; cuisine</h2>
+          <ul class="link-list">
+            {ownFilters.map((p) => (
+              <li>
+                <a href={`${p.url}/`}>{p.label}{p.kind === 'cuisine' ? ' restaurants' : ''}</a> ({p.items.length})
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {isCounty && orphanCityFilterGroups.length > 0 && (
+        <section>
+          <h2>More guides by city</h2>
+          <ul class="link-list">
+            {orphanCityFilterGroups.map((g) => (
+              <li>
+                <strong>{g.city}:</strong>{' '}
+                {g.pages.map((p, i) => (
+                  <>
+                    {i > 0 && ', '}
+                    <a href={`${p.url}/`}>{p.label}{p.kind === 'cuisine' ? ' restaurants' : ''}</a>
+                  </>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section>
+        <h2>All {items.length} restaurants</h2>
+        <ul class="cards">
+          {sorted.map((r) => <RestaurantCard r={r} />)}
+        </ul>
+      </section>
+    </article>
+  </main>
+</Base>
