@@ -53,20 +53,42 @@ const specials = (isCounty ? specialByCounty.get(slug) : specialByCity.get(slug)
 
 const pageUrl = new URL(isCounty ? `/${slug}-county/` : `/${slug}/`, Astro.site).href;
 
-const h1 = isCounty ? `Restaurants in ${displayName} County` : `Restaurants in ${displayName}`;
+const geoLabel = isCounty ? `${displayName} County` : displayName;
+const h1 = `${geoLabel} Restaurant Health Grades`;
 const intro = isCounty
   ? `Explore ${items.length} restaurants across ${displayName} County in Central Florida, each with its latest health inspection grade, dietary accommodations, and diner ratings. ${aGrade} currently hold an A health grade. Use the list below to compare scores and pick where to eat.`
   : `Explore ${items.length} restaurants in ${displayName}, ${countyOfCity.name} County, Central Florida, with health inspection grades, dietary options, and diner ratings. ${aGrade} currently hold an A health grade.`;
 
-const seoTitle = (
-  isCounty
-    ? `${displayName} County Restaurants — Health Grades`
-    : `${displayName}, FL Restaurants — Health Grades`
-).slice(0, 60);
+const seoTitle = `${geoLabel} Restaurant Health Grades${isCounty ? '' : ', FL'}`.slice(0, 60);
 const seoDescription = (
-  `Browse ${items.length} restaurants in ${displayName}${isCounty ? ' County' : ''}, ` +
-  `Central Florida — health inspection grades, dietary options, and ratings.`
+  `${geoLabel} restaurant health grades: browse ${items.length} restaurants by official A–F ` +
+  `inspection score, plus dietary options and diner ratings.`
 ).slice(0, 155);
+
+// FAQ — targets "{place} restaurant health grades" intent + FAQPage rich results.
+const faqs = [
+  {
+    q: `How are ${geoLabel} restaurant health grades calculated?`,
+    a: `Florida issues no official grades, so we calculate an A–F score from each restaurant's most recent DBPR inspection — starting at 100 points and deducting for high-priority, intermediate, and basic violations. Of the ${items.length} ${geoLabel} restaurants we grade, ${aGrade} currently hold an A.`,
+  },
+  {
+    q: `Does Florida assign letter grades to ${geoLabel} restaurants?`,
+    a: `No. The Florida Department of Business and Professional Regulation (DBPR) inspects restaurants and records violations but does not grade them. The grades shown here are calculated by us from those public inspection records.`,
+  },
+  {
+    q: `How many restaurants are graded in ${geoLabel}?`,
+    a: `We currently publish ${items.length} graded restaurants in ${geoLabel}${avgRating ? `, with an average diner rating of ${avgRating} stars` : ''}; ${aGrade} hold an A health grade.`,
+  },
+];
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
 
 /* ---------- JSON-LD: CollectionPage + ItemList + BreadcrumbList ---------- */
 const collectionSchema = {
@@ -111,7 +133,7 @@ const breadcrumbSchema = {
   <script
     type="application/ld+json"
     slot="jsonld"
-    set:html={JSON.stringify([collectionSchema, breadcrumbSchema])}
+    set:html={JSON.stringify([collectionSchema, breadcrumbSchema, faqSchema])}
   />
 
   <main>
@@ -197,6 +219,19 @@ const breadcrumbSchema = {
         <ul class="cards">
           {sorted.map((r) => <RestaurantCard r={r} />)}
         </ul>
+      </section>
+
+      <section id="faq">
+        <h2>{geoLabel} restaurant health grades — FAQ</h2>
+        <div class="prose">
+          {faqs.map((f) => (
+            <>
+              <h3>{f.q}</h3>
+              <p>{f.a}</p>
+            </>
+          ))}
+          <p>See the full scoring method on our <a href="/methodology/">methodology page</a>.</p>
+        </div>
       </section>
     </article>
   </main>
