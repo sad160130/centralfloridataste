@@ -1,15 +1,21 @@
 ---
-// Signature: a bold SQUARE inspection placard — grade letter + 0–100 score in
-// mono, on the grade color. Styling is global (Base.astro) so every page inherits.
+// Signature object: the two-part grade placard — bold letter over a darkened
+// mono score band. Per-grade colors come from [data-grade] derived tokens
+// (set on the placard itself), so it themes correctly anywhere. Styling is
+// global (Base.astro). size: 'sm' (safer list) | 'md' (card) | 'lg' (detail).
 const { grade, score, size = 'md' } = Astro.props;
 const g = String(grade ?? '').toUpperCase();
 const known = ['A', 'B', 'C', 'D', 'F'].includes(g);
 const hasScore = Number.isFinite(score);
+// Neutral grey treatment for "NR" / unrated; A–F themed by their grade color.
+const gradeKey = known ? g : 'NR';
+const letter = known ? g : g === 'NR' ? 'NR' : '—';
 const label = known
   ? `Health grade ${g}${hasScore ? `, score ${score} out of 100` : ''}`
-  : 'Health grade not available';
+  : 'Health grade not rated';
+const sizeClass = size === 'lg' ? 'placard placard--lg' : size === 'sm' ? 'placard placard--sm' : 'placard';
 ---
-<span class={`placard pl-${size} gr-${known ? g : 'NA'}`} role="img" aria-label={label}>
-  <span class="pl-letter" aria-hidden="true">{known ? g : '—'}</span>
-  {hasScore && <span class="pl-score" aria-hidden="true">{score}</span>}
+<span class={sizeClass} data-grade={gradeKey} role="img" aria-label={label}>
+  <span class="placard__letter" aria-hidden="true">{letter}</span>
+  {hasScore && <span class="placard__score" aria-hidden="true">{score}</span>}
 </span>

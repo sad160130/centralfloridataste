@@ -1,5 +1,5 @@
 ---
-import { titleCase } from '../lib/format.js';
+import { titleCase, formatMonthYear } from '../lib/format.js';
 import GradeBadge from './GradeBadge.astro';
 
 const { r, showViolations = false } = Astro.props;
@@ -7,14 +7,15 @@ const cuisine = r.cuisine ? titleCase(r.cuisine) : null;
 const hasRating =
   Number.isFinite(r.rating) && Number.isFinite(r.reviews_count) && r.reviews_count > 0;
 
-// Grade key drives the heatmap tint of the card head.
+// Grade key drives the card's heatmap edge + tint. A–F are themed; anything
+// else (NR / unrated) gets the neutral grey [data-grade="NR"] token set.
 const gradeKey = ['A', 'B', 'C', 'D', 'F'].includes(String(r.health_grade).toUpperCase())
   ? String(r.health_grade).toUpperCase()
-  : 'NA';
+  : 'NR';
 
-// Monogram = first A–Z letter of the name ("#1 WOK", "'THE' SAND BAR" → handled).
+// Ghost watermark = first A–Z letter of the name ("#1 WOK", "(THE) DELI" → handled).
 const letterMatch = String(r.name || '').match(/[A-Za-z]/);
-const monogram = (letterMatch ? letterMatch[0] : String(r.name || '?')[0]).toUpperCase();
+const ghost = (letterMatch ? letterMatch[0] : String(r.name || '?')[0]).toUpperCase();
 
 const DIET_SHORT = {
   vegan: 'Vegan', vegetarian: 'Veg', gluten_free: 'GF', dairy_free: 'DF',
@@ -22,8 +23,11 @@ const DIET_SHORT = {
   organic: 'Organic', healthy: 'Healthy', nut_aware: 'Nut-aware', pescatarian: 'Pesc.',
 };
 const diet = Array.isArray(r.dietary) ? r.dietary : [];
-const dietShown = diet.slice(0, 3);
+const dietShown = diet.slice(0, 2);
 const dietMore = diet.length - dietShown.length;
+
+const location = `${titleCase(r.city)}${r.county ? ` · ${r.county} County` : ''}`;
+const inspected = formatMonthYear(r.latest_inspection_date);
 
 const violationParts = [
   r.hp_violations ? `${r.hp_violations} high-priority` : null,
@@ -31,29 +35,39 @@ const violationParts = [
   r.basic_violations ? `${r.basic_violations} basic` : null,
 ].filter(Boolean);
 ---
-<li class="card">
-  <div class={`card-head tint-${gradeKey}`} aria-hidden="true">
-    <span class="tile-letter">{monogram}</span>
-    <GradeBadge grade={r.health_grade} score={r.health_score} size="md" />
-    {r.hidden_gem && <span class="tile-gem">★ Hidden gem</span>}
-  </div>
-  <div class="card-body">
-    <a class="card-name" href={`${r.url}/`}>{r.name}</a>
-    <p class="card-meta">
-      {cuisine && <span class="tag-cuisine">{cuisine}</span>}
-      {hasRating && <span class="card-rating">{r.rating}★ <i>({r.reviews_count})</i></span>}
-    </p>
-    <p class="card-loc">{titleCase(r.city)}{r.county ? ` · ${r.county} County` : ''}</p>
-    {dietShown.length > 0 && (
-      <p class="chips">
-        {dietShown.map((d) => <span class="chip">{DIET_SHORT[d] || d}</span>)}
-        {dietMore > 0 && <span class="chip chip-more">+{dietMore}</span>}
-      </p>
-    )}
-    {showViolations && r.health_grade && (
-      <p class="card-viol">
-        Violations: {violationParts.length ? violationParts.join(', ') : 'none recorded'}
-      </p>
-    )}
-  </div>
+<li>
+  <a class="card" data-grade={gradeKey} href={`${r.url}/`}>
+    <div class="card__head">
+      <GradeBadge grade={r.health_grade} score={r.health_score} size="md" />
+      <span class="card__ghost" aria-hidden="true">{ghost}</span>
+      {r.hidden_gem && (
+        <span class="card__gem"><span class="star" aria-hidden="true">★</span> Hidden gem</span>
+      )}
+    </div>
+    <div class="card__body">
+      <span class="card__name">{r.name}</span>
+      {(cuisine || hasRating) && (
+        <span class="card__meta">
+          {cuisine && <span class="chip chip--cuisine">{cuisine}</span>}
+          {hasRating && (
+            <span class="card__rating"><span class="star" aria-hidden="true">★</span> {r.rating}</span>
+          )}
+          {hasRating && <span class="card__count">({r.reviews_count})</span>}
+        </span>
+      )}
+      <span class="card__loc">{location}</span>
+      {dietShown.length > 0 && (
+        <span class="card__diet">
+          {dietShown.map((d) => <span class="chip">{DIET_SHORT[d] || d}</span>)}
+          {dietMore > 0 && <span class="chip chip--more">+{dietMore} more</span>}
+        </span>
+      )}
+      {showViolations && r.health_grade && (
+        <span class="card__viol">
+          Violations: {violationParts.length ? violationParts.join(', ') : 'none recorded'}
+        </span>
+      )}
+      {inspected && <span class="card__date">Inspected {inspected}</span>}
+    </div>
+  </a>
 </li>

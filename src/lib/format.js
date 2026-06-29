@@ -8,11 +8,24 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+const MONTHS_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
 export const formatDate = (iso) => {
   if (!iso) return null;
   const [y, m, d] = String(iso).split('-').map(Number);
   if (!y || !m || !d) return null;
   return `${MONTHS[m - 1]} ${d}, ${y}`;
+};
+
+// Compact "Mon YYYY" — used by the card's inspection date line.
+export const formatMonthYear = (iso) => {
+  if (!iso) return null;
+  const [y, m] = String(iso).split('-').map(Number);
+  if (!y || !m) return null;
+  return `${MONTHS_SHORT[m - 1]} ${y}`;
 };
 
 export const listJoin = (arr) => {

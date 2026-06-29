@@ -110,7 +110,41 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
         --wash-d: #f8e5d5;
         --wash-f: #f3dbd5;
         --wash-na: #f1efe9;
+
+        /* ---- Central Florida Taste spec tokens (folded in) ---- */
+        /* ground/ink/grade hues/citrus above already match the spec values. */
+        --ink-soft:  #4a4740;   /* body copy on ground */
+        --ink-mute:  #6e6a60;   /* secondary / supporting text */
+        --ink-faint: #9a958a;   /* mono micro-labels, counts */
+        --hairline:  #ece7dc;   /* dividers on ground */
+        --card-line: #e3ded3;   /* card border (right/bottom) */
+        --card-line-hover: #cfc8ba;
+
+        --tangerine:      #f26b1f;   /* = --citrus */
+        --tangerine-text: #c44d0e;   /* = --citrus-ink (AA on ground) */
+
+        --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+        --font-body:    'Hanken Grotesk', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        --font-mono:    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+        /* spacing scale (4px base) */
+        --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s6: 24px;
+        --s8: 32px; --s12: 48px; --s16: 64px; --s20: 80px;
+
+        /* radii — squared, civic, signage-like */
+        --radius-0: 0px;   /* placard, grade bars — sharp */
+        --radius-sm: 2px;  /* cards, chips, panels */
       }
+
+      /* ---- per-grade derived tokens (set [data-grade] on card/placard) ----
+         --c grade color · --tint ~10% wash · --ghost ~20% watermark · --deep darkened band */
+      [data-grade="A"] { --c: var(--g-a); --tint: #e9f3ec; --ghost: #c9e0cf; --deep: #187534; }
+      [data-grade="B"] { --c: var(--g-b); --tint: #ebf2f0; --ghost: #ccdfdb; --deep: #2d7169; }
+      [data-grade="C"] { --c: var(--g-c); --tint: #fcf4e2; --ghost: #f4e1b4; --deep: #c2880d; }
+      [data-grade="D"] { --c: var(--g-d); --tint: #fbefe3; --ghost: #f2d6bc; --deep: #bc5c18; }
+      [data-grade="F"] { --c: var(--g-f); --tint: #f8e7e2; --ghost: #eac2b8; --deep: #a12c16; }
+      /* NR / unrated — neutral grey treatment */
+      [data-grade="NR"] { --c: #8b877d; --tint: #f1efe9; --ghost: #d8d4ca; --deep: #67645c; }
 
       * { box-sizing: border-box; }
 
@@ -188,51 +222,72 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
       .nav-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
       .nav-burger { display: none; }
 
-      /* ---------- grade placard (signature) ---------- */
-      .placard { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--mono); line-height: 1; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); }
-      .pl-letter { font-weight: 700; }
-      .pl-score { font-weight: 500; opacity: 0.92; margin-top: 2px; }
-      .pl-sm { width: 2.1rem; height: 2.1rem; }
-      .pl-sm .pl-letter { font-size: 1rem; }
-      .pl-md { width: 2.9rem; height: 2.9rem; }
-      .pl-md .pl-letter { font-size: 1.35rem; }
-      .pl-md .pl-score { font-size: 0.58rem; }
-      .pl-lg { width: 5.4rem; height: 5.4rem; }
-      .pl-lg .pl-letter { font-size: 2.7rem; }
-      .pl-lg .pl-score { font-size: 0.82rem; }
-      .gr-A { background: var(--ga-solid); color: #fff; }
-      .gr-B { background: var(--gb-solid); color: #fff; }
-      .gr-C { background: var(--gc-solid); color: var(--ink); }
-      .gr-D { background: var(--gd-solid); color: var(--ink); }
-      .gr-F { background: var(--gf-solid); color: #fff; }
-      .gr-NA { background: var(--mute); color: #fff; }
+      /* ---------- grade placard (signature object) ----------
+         Two-part plaque: bold letter over a darkened mono score band.
+         Per-grade --c / --deep come from the [data-grade] token sets above. */
+      .placard { width: 48px; height: 48px; flex: none; display: flex; flex-direction: column; border-radius: var(--radius-0); }
+      .placard__letter { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--c); color: #fff; font: 800 22px/1 var(--font-display); }
+      .placard__score { height: 16px; display: flex; align-items: center; justify-content: center; background: var(--deep); color: #fff; font: 600 10px/1 var(--font-mono); letter-spacing: 0.04em; }
+      /* size variants */
+      .placard--lg { width: 64px; height: 64px; }
+      .placard--lg .placard__letter { font-size: 30px; }
+      .placard--lg .placard__score { height: 20px; font-size: 11px; }
+      .placard--sm { width: 36px; height: 36px; }
+      .placard--sm .placard__letter { font-size: 16px; }
+      .placard--sm .placard__score { height: 12px; font-size: 8px; }
+      /* AA: the grade-C amber is too light for white — use ink so the C placard
+         clears WCAG AA. All other grades keep the spec's white text. */
+      [data-grade="C"] .placard__letter, [data-grade="C"] .placard__score { color: var(--ink); }
 
-      /* ---------- cards (grade heatmap) ---------- */
-      ul.cards { list-style: none; padding: 0; margin: 1.4rem 0; display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
-      .card { background: var(--surface); border: 1px solid var(--line); border-radius: 2px; overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease; }
-      .card:hover { box-shadow: 0 14px 30px -16px rgba(25, 24, 21, 0.28); transform: translateY(-2px); border-color: var(--line-strong); }
-      .card-head { position: relative; height: 92px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-      .card-head .placard { position: absolute; top: 0.5rem; left: 0.5rem; }
-      .tile-letter { font-family: var(--display); font-weight: 800; font-size: 3.2rem; line-height: 1; color: rgba(25, 24, 21, 0.12); }
-      .tile-gem { position: absolute; top: 0.5rem; right: 0.5rem; font-family: var(--mono); font-size: 0.58rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink); background: rgba(255, 255, 255, 0.78); padding: 0.16rem 0.4rem; border-radius: 2px; }
-      .tint-A { background: var(--wash-a); border-top: 4px solid var(--g-a); }
-      .tint-B { background: var(--wash-b); border-top: 4px solid var(--g-b); }
-      .tint-C { background: var(--wash-c); border-top: 4px solid var(--g-c); }
-      .tint-D { background: var(--wash-d); border-top: 4px solid var(--g-d); }
-      .tint-F { background: var(--wash-f); border-top: 4px solid var(--g-f); }
-      .tint-NA { background: var(--wash-na); border-top: 4px solid var(--mute); }
-      .card-body { padding: 0.75rem 0.85rem 0.95rem; display: flex; flex-direction: column; gap: 0.3rem; }
-      .card-name { font-family: var(--display); font-weight: 700; font-size: 1.1rem; line-height: 1.1; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
-      a.card-name:hover { color: var(--citrus-ink); }
-      .card-meta { display: flex; flex-wrap: wrap; gap: 0.4rem 0.55rem; align-items: center; font-size: 0.82rem; color: var(--ink-2); margin: 0.1rem 0 0; }
-      .card-rating { font-family: var(--mono); font-weight: 500; font-size: 0.8rem; }
-      .card-rating i { color: var(--mute); font-style: normal; }
-      .card-loc { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mute); margin: 0; }
-      .tag-cuisine { font-family: var(--mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; color: var(--ink-2); background: #f3f0e9; padding: 0.13rem 0.42rem; border-radius: 2px; }
-      .chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.15rem 0 0; }
-      .chip { font-size: 0.66rem; color: var(--ink-2); border: 1px solid var(--line); background: var(--ground); padding: 0.08rem 0.42rem; border-radius: 2px; }
-      .chip-more { color: var(--mute); }
-      .card-viol { font-family: var(--mono); margin: 0.2rem 0 0; font-size: 0.75rem; color: var(--g-f); }
+      /* ---------- restaurant card — HYBRID (grade heatmap) ----------
+         White body. Grade rides a 3px top rule + 4px left edge, so a column of
+         cards reads as a vertical heatmap. Faint tinted header holds the placard
+         + a grade-tinted faded initial. Whole card is one link (no JS). */
+      ul.cards { list-style: none; padding: 0; margin: var(--s6) 0; display: grid; gap: var(--s4); grid-template-columns: repeat(4, 1fr); }
+      ul.cards > li { display: flex; }
+
+      .card {
+        display: flex; flex-direction: column; flex: 1; height: 100%;
+        background: #fff; text-decoration: none;
+        border: 1px solid var(--card-line);
+        border-top: 3px solid var(--c);   /* grade top rule            */
+        border-left: 4px solid var(--c);  /* grade left edge → heatmap */
+        border-radius: var(--radius-sm);
+        transition: transform .14s ease, box-shadow .14s ease,
+                    border-right-color .14s ease, border-bottom-color .14s ease;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 22px rgba(25, 24, 21, .10);
+        border-right-color: var(--card-line-hover);
+        border-bottom-color: var(--card-line-hover);
+      }
+
+      .card__head { position: relative; height: 74px; overflow: hidden; background: var(--tint); }
+      .card__ghost { position: absolute; right: -4px; bottom: -20px; font: 800 90px/1 var(--font-display); color: var(--ghost); user-select: none; pointer-events: none; }
+      .card .placard { position: absolute; left: 13px; top: 13px; }
+      .card__gem { position: absolute; right: 9px; top: 9px; display: flex; align-items: center; gap: 4px; background: var(--ink); color: #fff; padding: 4px 7px; font: 500 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
+      .card__gem .star { color: var(--g-c); }
+
+      .card__body { flex: 1; display: flex; flex-direction: column; gap: 9px; padding: 13px 14px 14px; }
+      .card__name { font: 700 14px/1.2 var(--font-body); letter-spacing: 0.01em; text-transform: uppercase; color: var(--ink); }
+      .card:hover .card__name { color: var(--tangerine-text); }
+      .card__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .card__rating { font: 600 12px/1 var(--font-mono); color: var(--ink); }
+      .card__rating .star { color: var(--g-c); }
+      .card__count { font: 400 11px/1 var(--font-mono); color: var(--ink-faint); }
+      .card__loc { font: 500 10px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+      .card__diet { display: flex; gap: 5px; flex-wrap: wrap; }
+      .card__viol { font: 500 11px/1.35 var(--font-mono); color: var(--g-f); }
+      .card__date { margin-top: auto; padding-top: 9px; border-top: 1px solid var(--hairline); font: 500 10px/1 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); }
+
+      /* chips */
+      .chip { font: 500 11px/1 var(--font-body); color: var(--ink-soft); background: #f4f0e7; border: 1px solid #e7e1d5; padding: 2px 7px; border-radius: var(--radius-sm); }
+      .chip--cuisine { font: 500 10px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: #5a564d; background: #efeae0; border: 0; padding: 3px 6px; }
+      .chip--more { color: var(--ink-faint); background: transparent; border: 0; padding: 2px 5px; }
+
+      @media (max-width: 900px) { ul.cards { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 560px) { ul.cards { grid-template-columns: 1fr; } }
 
       .badge { display: inline-flex; align-items: center; gap: 0.2rem; vertical-align: middle; font-family: var(--mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink); background: #f3f0e9; border: 1px solid var(--line); padding: 0.1rem 0.42rem; border-radius: 2px; }
 
@@ -268,10 +323,41 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
       .hub-links a { color: var(--citrus-ink); font-weight: 600; text-decoration: none; }
       .hub-links a:hover { text-decoration: underline; }
 
-      /* ---------- homepage hero + filter cards ---------- */
+      /* ---------- homepage hero + grade distribution ---------- */
       body.is-home { background: radial-gradient(110% 55% at 88% -10%, rgba(242, 107, 31, 0.07), transparent 60%), var(--ground); }
-      .is-home main > article > h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); line-height: 0.96; letter-spacing: -0.03em; max-width: 17ch; }
-      .is-home main > article > .lead { font-size: 1.25rem; border-left: none; padding-left: 0; }
+
+      .hero__eyebrow { display: flex; align-items: center; gap: 14px; margin: 0 0 28px; font: 600 12px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--tangerine-text); }
+      .hero__eyebrow .dot { width: 4px; height: 4px; background: #e0c9a8; display: inline-block; flex: none; }
+      .hero__grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 64px; align-items: start; }
+      .hero__title { margin: 0; font: 800 64px/0.98 var(--font-display); letter-spacing: -0.025em; color: var(--ink); }
+      .hero__title .accent { color: var(--tangerine); }
+      .hero__lede { margin: 28px 0 0; font: 400 19px/1.6 var(--font-body); color: var(--ink-soft); max-width: 30em; }
+
+      /* grade-distribution panel — segments flex-grown by live counts */
+      .dist { border: 1px solid var(--card-line); background: #fff; padding: 26px; border-radius: var(--radius-sm); }
+      .dist__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
+      .dist__title { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+      .dist__n { font: 500 11px/1 var(--font-mono); color: var(--ink-faint); }
+      .dist__bar { display: flex; height: 56px; gap: 2px; margin-bottom: 20px; }
+      .dist__seg { display: flex; align-items: center; justify-content: center; color: #fff; font: 800 22px/1 var(--font-display); min-width: 0; }
+      .dist__seg[data-grade="A"] { background: var(--g-a); }
+      .dist__seg[data-grade="B"] { background: var(--g-b); }
+      .dist__seg[data-grade="C"] { background: var(--g-c); }
+      .dist__seg[data-grade="D"] { background: var(--g-d); }
+      .dist__seg[data-grade="F"] { background: var(--g-f); font-size: 18px; }
+      .dist__seg[data-grade="C"] { color: var(--ink); }  /* AA on amber */
+      .dist__row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--hairline); }
+      .dist__swatch { width: 14px; height: 14px; flex: none; }
+      .dist__letter { width: 16px; font: 800 14px/1 var(--font-display); color: var(--ink); }
+      .dist__label { flex: 1; font: 500 13px/1 var(--font-body); color: var(--ink-soft); }
+      .dist__range { font: 500 12px/1 var(--font-mono); color: var(--ink-faint); }
+      .dist__count { width: 52px; text-align: right; font: 600 12px/1 var(--font-mono); color: var(--ink); }
+
+      @media (max-width: 760px) {
+        .hero__grid { grid-template-columns: 1fr; gap: 26px; }
+        .hero__title { font-size: 34px; line-height: 1.0; letter-spacing: -0.02em; }
+        .hero__lede { font-size: 15px; line-height: 1.55; margin-top: 20px; }
+      }
 
       ul.filtercards { list-style: none; padding: 0; margin: 2rem 0 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; }
       .filtercard { display: flex; align-items: center; gap: 0.75rem; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px; padding: 0.85rem 0.95rem; text-decoration: none; color: var(--ink); transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease; }
@@ -299,10 +385,10 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
       /* ---------- focus + motion ---------- */
       :focus-visible { outline: 3px solid var(--citrus); outline-offset: 2px; }
       @media (prefers-reduced-motion: no-preference) {
-        .is-home main > article > .eyebrow { animation: rise 0.5s ease both; }
-        .is-home main > article > h1 { animation: rise 0.5s 0.07s ease both; }
-        .is-home main > article > .lead { animation: rise 0.5s 0.14s ease both; }
-        .is-home main > article > ul.filtercards { animation: rise 0.5s 0.21s ease both; }
+        .is-home .hero__eyebrow { animation: rise 0.5s ease both; }
+        .is-home .hero__title { animation: rise 0.5s 0.07s ease both; }
+        .is-home .hero__lede { animation: rise 0.5s 0.14s ease both; }
+        .is-home .dist { animation: rise 0.5s 0.21s ease both; }
         @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
       }
       @media (prefers-reduced-motion: reduce) {

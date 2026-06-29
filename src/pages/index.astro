@@ -11,6 +11,21 @@ const countyList = [...counties].sort((a, b) => b.items.length - a.items.length)
 const districtList = [...districts].sort((a, b) => b.items.length - a.items.length);
 const totalAGrade = phase1.filter((r) => r.health_grade === 'A').length;
 
+// Live grade distribution across published restaurants — drives the hero panel.
+const GRADES = [
+  { g: 'A', label: 'Excellent', range: '90–100' },
+  { g: 'B', label: 'Good', range: '80–89' },
+  { g: 'C', label: 'Fair', range: '70–79' },
+  { g: 'D', label: 'Poor', range: '60–69' },
+  { g: 'F', label: 'Failing', range: '<60' },
+];
+const gradeCounts = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+for (const r of phase1) {
+  const g = String(r.health_grade).toUpperCase();
+  if (g in gradeCounts) gradeCounts[g] += 1;
+}
+const distTotal = GRADES.reduce((s, { g }) => s + gradeCounts[g], 0);
+
 // Featured: every hidden gem, then the most-reviewed A-grade spots to fill out the row.
 const hiddenGems = phase1.filter((r) => r.hidden_gem);
 const topA = phase1
@@ -79,17 +94,44 @@ const faqSchema = {
   />
 
   <main>
-    <article>
-      <p class="eyebrow">DBPR-graded · {totalTracked.toLocaleString('en-US')} restaurants · Updated June 2026</p>
-      <h1>Central Florida Restaurants, Graded A–F by Health Inspection</h1>
-      <p class="lead">
-        Compare Central Florida restaurants by the one thing Florida won&rsquo;t tell you: how clean
-        they are. We turn the state&rsquo;s public DBPR inspection records into clear A–F health grades
-        for {phase1.length} restaurants &mdash; {totalAGrade} currently grade A &mdash; alongside
-        dietary options and diner ratings. Browse by county, city, or one of the region&rsquo;s named
-        dining districts.
-      </p>
+    <section class="hero__body">
+      <p class="hero__eyebrow"><span class="dot" aria-hidden="true"></span>DBPR-graded · {totalTracked.toLocaleString('en-US')} restaurants · Updated June 2026</p>
+      <div class="hero__grid">
+        <div class="hero__intro">
+          <h1 class="hero__title">Central Florida Restaurants, Graded <span class="accent">A–F</span> by Health Inspection</h1>
+          <p class="hero__lede">
+            Compare Central Florida restaurants by the one thing Florida won&rsquo;t tell you: how clean
+            they are. We turn the state&rsquo;s public DBPR inspection records into clear A–F health grades
+            for {phase1.length} restaurants &mdash; {totalAGrade} currently grade A &mdash; alongside
+            dietary options and diner ratings. Browse by county, city, or one of the region&rsquo;s named
+            dining districts.
+          </p>
+        </div>
 
+        <aside class="dist" aria-label="Health grade distribution across published restaurants">
+          <div class="dist__head">
+            <span class="dist__title">Grade distribution</span>
+            <span class="dist__n">{distTotal.toLocaleString('en-US')} graded</span>
+          </div>
+          <div class="dist__bar" aria-hidden="true">
+            {GRADES.map(({ g }) => gradeCounts[g] > 0 && (
+              <div class="dist__seg" data-grade={g} style={`flex:${gradeCounts[g]}`}>{g}</div>
+            ))}
+          </div>
+          {GRADES.map(({ g, label, range }) => (
+            <div class="dist__row">
+              <span class="dist__swatch" style={`background: var(--g-${g.toLowerCase()})`} aria-hidden="true"></span>
+              <span class="dist__letter">{g}</span>
+              <span class="dist__label">{label}</span>
+              <span class="dist__range">{range}</span>
+              <span class="dist__count">{gradeCounts[g].toLocaleString('en-US')}</span>
+            </div>
+          ))}
+        </aside>
+      </div>
+    </section>
+
+    <article>
       <ul class="filtercards">
         <li><a class="filtercard" href="#favorites">
           <span class="fc-mono is-a" aria-hidden="true">A</span>

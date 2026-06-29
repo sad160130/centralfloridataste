@@ -1,0 +1,266 @@
+/* =====================================================================
+   CENTRAL FLORIDA TASTE — Implementation spec
+   Hybrid restaurant card + homepage hero
+   Static CSS, Astro-ready. No JS, no images — every effect is pure CSS.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. DESIGN TOKENS
+   --------------------------------------------------------------------- */
+:root {
+  /* --- ground & ink --- */
+  --ground:     #FCFBF8;   /* daylight off-white page ground */
+  --ink:        #191815;   /* warm near-black, primary text */
+  --ink-soft:   #4A4740;   /* body copy on ground */
+  --ink-mute:   #6E6A60;   /* secondary / supporting text */
+  --ink-faint:  #9A958A;   /* mono micro-labels, counts */
+  --hairline:   #ECE7DC;   /* dividers on ground */
+  --card-line:  #E3DED3;   /* card border (right/bottom) */
+  --card-line-hover: #CFC8BA;
+
+  /* --- accent (citrus tangerine) --- */
+  --tangerine:       #F26B1F;   /* large accent, fills, the "A–F" */
+  --tangerine-text:  #C44D0E;   /* small text / links (AA on ground) */
+
+  /* --- A–F grade scale --- */
+  --g-a: #1E8E3E;   /* A — Excellent  90–100 */
+  --g-b: #37897F;   /* B — Good       80–89  */
+  --g-c: #E8A317;   /* C — Fair       70–79  */
+  --g-d: #E2701E;   /* D — Poor       60–69  */
+  --g-f: #C2351B;   /* F — Failing    < 60   */
+
+  /* --- type families --- */
+  --font-display: "Bricolage Grotesque", sans-serif;  /* display / headings */
+  --font-body:    "Hanken Grotesk", sans-serif;       /* body / UI labels   */
+  --font-mono:    "IBM Plex Mono", monospace;         /* ALL data: scores, codes, dates, counts */
+
+  /* --- spacing scale (4px base) --- */
+  --s1:  4px;
+  --s2:  8px;
+  --s3:  12px;
+  --s4:  16px;
+  --s6:  24px;
+  --s8:  32px;
+  --s12: 48px;
+  --s16: 64px;
+  --s20: 80px;
+
+  /* --- radii (squared, civic, signage-like) --- */
+  --radius-0:  0px;    /* placard, grade bars — sharp */
+  --radius-sm: 2px;    /* cards, chips, panels */
+  /* no pills anywhere */
+}
+
+/* ---------------------------------------------------------------------
+   2. PER-GRADE DERIVED TOKENS
+   Put data-grade="A".."F" on the card root (and any grade-themed block).
+     --c    = the grade color
+     --tint = grade mixed ~10% into ground  (faint header wash)
+     --ghost= grade mixed ~20% into ground  (faded watermark initial)
+     --deep = grade darkened ~18%           (placard score band)
+   Hardcoded here for zero-JS; equivalent to:
+     --tint: color-mix(in srgb, var(--c) 10%, var(--ground));
+   --------------------------------------------------------------------- */
+[data-grade="A"]{ --c:var(--g-a); --tint:#E9F3EC; --ghost:#C9E0CF; --deep:#187534; }
+[data-grade="B"]{ --c:var(--g-b); --tint:#EBF2F0; --ghost:#CCDFDB; --deep:#2D7169; }
+[data-grade="C"]{ --c:var(--g-c); --tint:#FCF4E2; --ghost:#F4E1B4; --deep:#C2880D; }
+[data-grade="D"]{ --c:var(--g-d); --tint:#FBEFE3; --ghost:#F2D6BC; --deep:#BC5C18; }
+[data-grade="F"]{ --c:var(--g-f); --tint:#F8E7E2; --ghost:#EAC2B8; --deep:#A12C16; }
+
+/* ---------------------------------------------------------------------
+   3. TYPE SCALE
+   font: <weight> <size>/<line-height> <family>
+   --------------------------------------------------------------------- */
+.t-display {                                   /* hero H1 */
+  font: 800 64px/0.98 var(--font-display);
+  letter-spacing: -0.025em; color: var(--ink);
+}
+.t-h2 {                                        /* section headings */
+  font: 700 26px/1.1 var(--font-display);
+  letter-spacing: -0.02em; color: var(--ink);
+}
+.t-h3 {                                        /* card name */
+  font: 700 14px/1.2 var(--font-body);
+  letter-spacing: 0.01em; text-transform: uppercase; color: var(--ink);
+}
+.t-body-lg {                                   /* hero sub-paragraph */
+  font: 400 19px/1.6 var(--font-body); color: var(--ink-soft);
+}
+.t-body {                                      /* default body */
+  font: 400 16px/1.55 var(--font-body); color: var(--ink-soft);
+}
+.t-mono-label {                                /* eyebrow / section kicker */
+  font: 600 12px/1.4 var(--font-mono);
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.t-mono-data {                                 /* ratings, scores, counts */
+  font: 600 13px/1 var(--font-mono); color: var(--ink);
+}
+.t-mono-micro {                                /* dates, location, captions */
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint);
+}
+
+/* ---------------------------------------------------------------------
+   4. GRADE PLACARD — the signature object
+   Two-part plaque: bold letter over a darkened mono score band.
+   --------------------------------------------------------------------- */
+.placard {
+  width: 48px; height: 48px; flex: none;
+  display: flex; flex-direction: column; border-radius: var(--radius-0);
+}
+.placard__letter {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  background: var(--c); color: #fff;
+  font: 800 22px/1 var(--font-display);
+}
+.placard__score {
+  height: 16px; display: flex; align-items: center; justify-content: center;
+  background: var(--deep); color: #fff;
+  font: 600 10px/1 var(--font-mono); letter-spacing: 0.04em;
+}
+/* size variant for hero/legend usage */
+.placard--lg { width: 64px; height: 64px; }
+.placard--lg .placard__letter { font-size: 30px; }
+.placard--lg .placard__score  { height: 20px; font-size: 11px; }
+
+/* ---------------------------------------------------------------------
+   5. RESTAURANT CARD — HYBRID
+   White body. Grade rides a 3px top rule + 4px left edge, so a column of
+   cards reads as a vertical heatmap without a full wash. Faint tinted
+   header holds the placard + a grade-tinted faded initial.
+   --------------------------------------------------------------------- */
+.card {
+  display: flex; flex-direction: column; height: 100%;
+  background: #fff;
+  border: 1px solid var(--card-line);
+  border-top:  3px solid var(--c);   /* grade top rule              */
+  border-left: 4px solid var(--c);   /* grade left edge → heatmap   */
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease,
+              border-right-color .14s ease, border-bottom-color .14s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(25, 24, 21, .10);
+  border-right-color: var(--card-line-hover);
+  border-bottom-color: var(--card-line-hover);
+}
+
+/* header zone */
+.card__head { position: relative; height: 74px; overflow: hidden; background: var(--tint); }
+.card__ghost {                                  /* faded grade-tinted initial */
+  position: absolute; right: -4px; bottom: -20px;
+  font: 800 90px/1 var(--font-display); color: var(--ghost);
+  user-select: none; pointer-events: none;
+}
+.card .placard { position: absolute; left: 13px; top: 13px; }
+.card__gem {                                    /* "★ Hidden gem" badge */
+  position: absolute; right: 9px; top: 9px;
+  display: flex; align-items: center; gap: 4px;
+  background: var(--ink); color: #fff; padding: 4px 7px;
+  font: 500 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.card__gem .star { color: var(--g-c); }
+
+/* body */
+.card__body { flex: 1; display: flex; flex-direction: column; gap: 9px; padding: 13px 14px 14px; }
+.card__name   { font: 700 14px/1.2 var(--font-body); letter-spacing: 0.01em; text-transform: uppercase; color: var(--ink); }
+.card__meta   { display: flex; align-items: center; gap: 8px; }
+.card__rating { font: 600 12px/1 var(--font-mono); color: var(--ink); }
+.card__rating .star { color: var(--g-c); }
+.card__count  { font: 400 11px/1 var(--font-mono); color: var(--ink-faint); }
+.card__loc    { font: 500 10px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+.card__diet   { display: flex; gap: 5px; flex-wrap: wrap; }
+.card__date {
+  margin-top: auto; padding-top: 9px; border-top: 1px solid var(--hairline);
+  font: 500 10px/1 var(--font-mono); letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+
+/* chips */
+.chip {
+  font: 500 11px/1 var(--font-body); color: var(--ink-soft);
+  background: #F4F0E7; border: 1px solid #E7E1D5; padding: 2px 7px;
+}
+.chip--cuisine {
+  font: 500 10px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase;
+  color: #5A564D; background: #EFEAE0; border: 0; padding: 3px 6px;
+}
+.chip--more { color: var(--ink-faint); background: transparent; border: 0; padding: 2px 5px; }
+
+/* ---------------------------------------------------------------------
+   6. CARD GRID — cards stretch to equal height so left edges line up
+   --------------------------------------------------------------------- */
+.grid { display: grid; gap: var(--s4); grid-template-columns: repeat(4, 1fr); }
+.grid > .card { height: 100%; }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+/* ---------------------------------------------------------------------
+   7. HERO
+   --------------------------------------------------------------------- */
+.hero { background: var(--ground); }
+
+/* nav */
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 56px; border-bottom: 1px solid var(--hairline); }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand__mark { display: flex; gap: 3px; align-items: flex-end; height: 30px; }
+.brand__mark i { width: 6px; height: 30px; display: block; }
+.brand__mark i:nth-child(1){ background: var(--g-a); }
+.brand__mark i:nth-child(2){ background: var(--g-c); }
+.brand__mark i:nth-child(3){ background: var(--g-d); }
+.brand__mark i:nth-child(4){ background: var(--g-f); }
+.brand__name { font: 800 19px/1 var(--font-display); letter-spacing: -0.01em; color: var(--ink); }
+.brand__sub  { margin-top: 4px; font: 500 10px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); }
+.nav__links { display: flex; gap: 30px; font: 500 12px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); }
+.nav__links a { color: inherit; text-decoration: none; }
+.nav__links a:hover { color: var(--tangerine-text); }
+
+/* hero body */
+.hero__body { padding: 56px 56px 48px; }
+.hero__eyebrow {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 28px;
+  font: 600 12px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--tangerine-text);
+}
+.hero__eyebrow .dot { width: 4px; height: 4px; background: #E0C9A8; display: inline-block; }
+.hero__grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 64px; align-items: start; }
+.hero__title { margin: 0; font: 800 64px/0.98 var(--font-display); letter-spacing: -0.025em; color: var(--ink); }
+.hero__title .accent { color: var(--tangerine); }
+.hero__lede { margin: 28px 0 0; font: 400 19px/1.6 var(--font-body); color: var(--ink-soft); max-width: 30em; }
+
+@media (max-width: 760px) {
+  .nav { padding: 16px 20px; }
+  .nav__links { display: none; }
+  .hero__body { padding: 28px 20px 32px; }
+  .hero__grid { grid-template-columns: 1fr; gap: 26px; }
+  .hero__title { font-size: 34px; line-height: 1.0; letter-spacing: -0.02em; }
+  .hero__lede { font-size: 15px; line-height: 1.55; }
+}
+
+/* ---------------------------------------------------------------------
+   8. GRADE DISTRIBUTION PANEL (hero anchor + reusable legend)
+   The stacked bar segments are flex-grown by count, so it reads as a
+   heatmap of the whole dataset.
+   --------------------------------------------------------------------- */
+.dist { border: 1px solid var(--card-line); background: #fff; padding: 26px; }
+.dist__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
+.dist__title { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.dist__n { font: 500 11px/1 var(--font-mono); color: var(--ink-faint); }
+
+.dist__bar { display: flex; height: 56px; gap: 2px; margin-bottom: 20px; }
+.dist__seg { display: flex; align-items: center; justify-content: center; color: #fff; font: 800 22px/1 var(--font-display); }
+.dist__seg[data-grade="A"]{ background: var(--g-a); }
+.dist__seg[data-grade="B"]{ background: var(--g-b); }
+.dist__seg[data-grade="C"]{ background: var(--g-c); }
+.dist__seg[data-grade="D"]{ background: var(--g-d); }
+.dist__seg[data-grade="F"]{ background: var(--g-f); font-size: 18px; }
+/* set flex-grow per segment inline to the live counts, e.g. style="flex:1318" */
+
+.dist__row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--hairline); }
+.dist__swatch { width: 14px; height: 14px; flex: none; }
+.dist__letter { width: 16px; font: 800 14px/1 var(--font-display); color: var(--ink); }
+.dist__label  { flex: 1; font: 500 13px/1 var(--font-body); color: var(--ink-soft); }
+.dist__range  { font: 500 12px/1 var(--font-mono); color: var(--ink-faint); }
+.dist__count  { width: 52px; text-align: right; font: 600 12px/1 var(--font-mono); color: var(--ink); }
