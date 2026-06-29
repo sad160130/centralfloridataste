@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import RestaurantCard from './RestaurantCard.astro';
 import GradeAttribution from './GradeAttribution.astro';
 import { cityHubSlugs } from '../lib/data.js';
+import { specialIntro } from '../lib/prose.js';
 
 const { page } = Astro.props;
 const { specialType, geoType, geoSlug, geoName, items, url } = page;
@@ -34,20 +35,20 @@ const n = items.length;
 const plural = n === 1 ? 'restaurant' : 'restaurants';
 
 /* ---------- per-type copy ---------- */
-let h1, intro, crumbLabel;
+// h1 + breadcrumb label stay fixed (titles/SEO unchanged); the visible intro is
+// data-driven and pointed — see lib/prose.js (worst/gems lean "weird but true").
+let h1, crumbLabel;
 if (specialType === 'hidden_gems') {
   h1 = `Hidden Gem Restaurants in ${geoDisplay}`;
   crumbLabel = 'Hidden Gems';
-  intro = `These ${n} ${geoDisplay} ${plural} earn 4.5 stars or higher from diners yet have fewer than 200 reviews — well-loved locally but still under the radar. Each listing includes its latest Florida health inspection grade and rating.`;
 } else if (specialType === 'top_rated_safe') {
   h1 = `Top-Rated, Health-Safe Restaurants in ${geoDisplay}`;
   crumbLabel = 'Top-Rated & Safe';
-  intro = `These ${n} ${geoDisplay} ${plural} pass Florida health inspections with an A grade and earn strong diner ratings — a clean kitchen and a meal people love. Sorted by rating.`;
 } else {
   h1 = `Restaurants With the Lowest Health Scores in ${geoDisplay}`;
   crumbLabel = 'Lowest Health Scores';
-  intro = `The following ${n} ${plural} in ${geoDisplay} received a health grade of D or F at their most recent inspection, according to Florida Department of Business and Professional Regulation (DBPR) public inspection records. Each listing shows its grade, score, and violation counts, ordered from the lowest score.`;
 }
+const intro = specialIntro(page).lead;
 
 const showViolations = specialType === 'worst_health';
 

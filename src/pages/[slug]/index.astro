@@ -4,6 +4,7 @@ import RestaurantCard from '../../components/RestaurantCard.astro';
 import { counties, cities } from '../../lib/data.js';
 import { countyFilters, cityFilters, sortFilters, orphanCityFiltersForCounty, specialByCity, specialByCounty } from '../../lib/manifest.js';
 import { titleCase, sortForHub } from '../../lib/format.js';
+import { hubIntro } from '../../lib/prose.js';
 
 // County hubs (/[county_slug]-county/) and city hubs (/[city_slug]/) both live at
 // the root as single dynamic segments — Astro permits one dynamic route per path
@@ -55,9 +56,10 @@ const pageUrl = new URL(isCounty ? `/${slug}-county/` : `/${slug}/`, Astro.site)
 
 const geoLabel = isCounty ? `${displayName} County` : displayName;
 const h1 = `${geoLabel} Restaurant Health Grades`;
-const intro = isCounty
-  ? `Explore ${items.length} restaurants across ${displayName} County in Central Florida, each with its latest health inspection grade, dietary accommodations, and diner ratings. ${aGrade} currently hold an A health grade. Use the list below to compare scores and pick where to eat.`
-  : `Explore ${items.length} restaurants in ${displayName}, ${countyOfCity.name} County, Central Florida, with health inspection grades, dietary options, and diner ratings. ${aGrade} currently hold an A health grade.`;
+// Data-driven intro: opens on whatever is most distinctive about THIS area's
+// data (grade mix, a local wedge, dominant cuisine, scale) — see lib/prose.js.
+const hub = hubIntro({ type, displayName, slug, items });
+const intro = hub.lead;
 
 const seoTitle = `${geoLabel} Restaurant Health Grades${isCounty ? '' : ', FL'}`.slice(0, 60);
 const seoDescription = (

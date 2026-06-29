@@ -2,9 +2,11 @@
 import Base from '../../../layouts/Base.astro';
 import GradeBadge from '../../../components/GradeBadge.astro';
 import GradeAttribution from '../../../components/GradeAttribution.astro';
+import SaferNearby from '../../../components/SaferNearby.astro';
 import restaurants from '../../../data/restaurants.json';
 import { cityHubSlugs, districtHubSlugs } from '../../../lib/data.js';
 import { titleCase, formatDate, listJoin } from '../../../lib/format.js';
+import { listingProse } from '../../../lib/prose.js';
 
 // One static page per restaurant — only published === true rows are emitted.
 export function getStaticPaths() {
@@ -52,58 +54,13 @@ for (const x of restaurants) if (x.published === true) p1Urls.add(x.url);
 const nearby = Array.isArray(r.nearby_safer) ? r.nearby_safer : [];
 const showNearby = r.health_grade !== 'A' && nearby.length > 0;
 
-// Trend + recency line, e.g. "Inspections trending: improving · last inspected 47 days ago".
-const trendBits = [];
-if (r.inspection_trend) trendBits.push(`trending: ${r.inspection_trend}`);
-if (daysSince !== null) trendBits.push(`last inspected ${daysSince} day${daysSince === 1 ? '' : 's'} ago`);
-const trendLine = trendBits.length ? `Inspections ${trendBits.join(' · ')}` : null;
-
-/* ---------- indexable prose summary (paraphrased from data) ---------- */
-const sentences = [];
-sentences.push(
-  `${r.name} is${cuisineDisplay ? ` a ${cuisineDisplay}` : ' a'} restaurant` +
-    `${r.address ? ` at ${r.address}` : ''} in ${cityDisplay}` +
-    `${r.county ? `, ${r.county} County` : ''}, in Central Florida.`
-);
-
-if (r.health_grade) {
-  sentences.push(
-    `At its most recent health inspection${inspectionDate ? ` on ${inspectionDate}` : ''}, ` +
-      `it received a grade of ${r.health_grade}` +
-      `${Number.isFinite(r.health_score) ? ` with a score of ${r.health_score} out of 100` : ''}.`
-  );
-  if (totalViolations === 0) {
-    sentences.push('Inspectors recorded no outstanding violations.');
-  } else {
-    const parts = [];
-    if (r.hp_violations) parts.push(`${r.hp_violations} high-priority`);
-    if (r.intermediate_violations) parts.push(`${r.intermediate_violations} intermediate`);
-    if (r.basic_violations) parts.push(`${r.basic_violations} basic`);
-    sentences.push(
-      `The inspection noted ${listJoin(parts)} violation${totalViolations === 1 ? '' : 's'}.`
-    );
-  }
-}
-
-if (pct !== null && r.county) {
-  sentences.push(`By health score, it is safer than ${pct}% of ${r.county} County restaurants.`);
-}
-
-if (hasRating) {
-  sentences.push(
-    `Diners give it an average rating of ${r.rating} stars across ${r.reviews_count} reviews.`
-  );
-}
-if (r.price_level) {
-  sentences.push(`Typical prices fall in the ${r.price_level} range.`);
-}
-if (dietaryDisplay.length) {
-  sentences.push(`Menu options are noted as suitable for ${listJoin(dietaryDisplay)} diners.`);
-}
-if (r.hidden_gem) {
-  sentences.push('It is flagged as a hidden gem — a well-rated spot that flies under the radar.');
-}
-const summary = sentences.join(' ');
+/* ---------- distinctive, data-driven prose (see lib/prose.js) ----------
+   Opens with the single most notable TRUE fact about this restaurant and
+   rotates phrasing/structure by its data, so no two pages read alike. */
+const prose = listingProse(r, {
+  latestDisposition: history[0]?.disposition ?? null,
+  hasSafer: showNearby,
+});
 
 /* ---------- SEO title + description ---------- */
 // Keep titles unique: same-name chains in the same city would otherwise collide,
@@ -232,9 +189,12 @@ const breadcrumbSchema = {
 
       <GradeAttribution updated={inspectionDate || 'June 2026'} />
 
-      <p>{summary}</p>
+      {prose.callout && (
+        <p class={`signal signal--${prose.callout.kind}`}>{prose.callout.text}</p>
+      )}
 
-      {trendLine && <p class="trend">{trendLine}</p>}
+      <p class="lead-prose">{prose.lead}</p>
+      {prose.support && <p>{prose.support}</p>}
 
       {(r.directions_url || telHref) && (
         <p class="actions">
@@ -244,6 +204,9 @@ const breadcrumbSchema = {
           {telHref && <a class="btn btn-alt" href={`tel:${telHref}`}>Call {r.phone}</a>}
         </p>
       )}
+
+      {/* Risky kitchens surface safer alternatives up front; clean ones don't need to. */}
+      {prose.promoteSafer && showNearby && <SaferNearby r={r} nearby={nearby} p1Urls={p1Urls} />}
 
       <section>
         <h2>Restaurant details</h2>
@@ -381,32 +344,7 @@ const breadcrumbSchema = {
         </section>
       )}
 
-      {showNearby && (
-        <section>
-          <h2>Safer options nearby</h2>
-          <p>Higher-graded restaurants close to {r.name}, by Florida DBPR grade:</p>
-          <ul class="saferlist">
-            {nearby.map((n) => (
-              <li class="safer">
-                <GradeBadge grade={n.grade} size="sm" />
-                <div class="safer-body">
-                  {p1Urls.has(n.url) ? (
-                    <a class="safer-name" href={`${n.url}/`}>{n.name}</a>
-                  ) : (
-                    <span class="safer-name">{n.name}</span>
-                  )}
-                  <p class="safer-meta">
-                    {Number.isFinite(n.rating) && <span>{n.rating}★</span>}
-                    {Number.isFinite(n.distance_mi) && (
-                      <span>{n.distance_mi === 0 ? 'nearby' : `${Number(n.distance_mi).toFixed(1)} mi away`}</span>
-                    )}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {showNearby && !prose.promoteSafer && <SaferNearby r={r} nearby={nearby} p1Urls={p1Urls} />}
 
       <nav class="hub-links" aria-label="Explore more">
         <strong>Explore more:</strong>
@@ -421,7 +359,6 @@ const breadcrumbSchema = {
     .detail-head { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; margin: 0 0 0.6rem; }
     .detail-head h1 { margin: 0; }
     .detail-head h1 .badge { margin-left: 0.5rem; }
-    .trend { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.03em; color: var(--ink-2); margin: 0 0 1.1rem; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 1.6rem; }
     .btn {
       display: inline-block; background: var(--citrus); color: var(--ink); text-decoration: none;
@@ -450,13 +387,5 @@ const breadcrumbSchema = {
     ul.viol-list li { margin: 0.18rem 0; }
     ul.viol-list li::marker { color: var(--mute); }
     .viol-none { font-family: var(--mono); font-size: 0.82rem; color: var(--g-a); margin: 0.3rem 0 0; }
-
-    /* safer options nearby */
-    ul.saferlist { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-    .safer { display: flex; align-items: center; gap: 0.7rem; background: var(--surface); border: 1px solid var(--line); border-radius: 2px; padding: 0.7rem 0.8rem; }
-    .safer-body { min-width: 0; }
-    .safer-name { font-family: var(--display); font-weight: 700; font-size: 1rem; color: var(--ink); text-decoration: none; display: block; }
-    a.safer-name:hover { color: var(--citrus-ink); }
-    .safer-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.15rem 0 0; font-family: var(--mono); font-size: 0.74rem; color: var(--mute); }
   </style>
 </Base>

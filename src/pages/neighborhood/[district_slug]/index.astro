@@ -4,6 +4,7 @@ import RestaurantCard from '../../../components/RestaurantCard.astro';
 import { districts } from '../../../lib/data.js';
 import { districtFilters, sortFilters } from '../../../lib/manifest.js';
 import { sortForHub } from '../../../lib/format.js';
+import { hubIntro } from '../../../lib/prose.js';
 
 // One hub per named food district (Mills 50, Dr. Phillips, etc.).
 export function getStaticPaths() {
@@ -28,10 +29,8 @@ const pageUrl = new URL(`/neighborhood/${slug}/`, Astro.site).href;
 const ownFilters = sortFilters(districtFilters.get(slug) || []);
 
 const h1 = `Restaurants in ${name}`;
-const intro =
-  `${name} is a dining district in ${county.name} County, Central Florida. Explore its ` +
-  `${items.length} restaurants below with health inspection grades, dietary options, and diner ` +
-  `ratings — ${aGrade} currently hold an A health grade.`;
+// Data-driven intro, same engine as the county/city hubs — see lib/prose.js.
+const intro = hubIntro({ type: 'district', displayName: name, slug, items }).lead;
 
 const seoTitle = `${name} Restaurants — Central Florida Dining`.slice(0, 60);
 const seoDescription = (

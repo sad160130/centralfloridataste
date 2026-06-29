@@ -1,0 +1,39 @@
+---
+// "Safer options nearby" — extracted so the detail template can position it
+// high (for risky kitchens, where alternatives matter first) or low (default).
+import GradeBadge from './GradeBadge.astro';
+const { r, nearby, p1Urls } = Astro.props;
+---
+<section>
+  <h2>Safer options nearby</h2>
+  <p>Higher-graded restaurants close to {r.name}, by Florida DBPR grade:</p>
+  <ul class="saferlist">
+    {nearby.map((n) => (
+      <li class="safer">
+        <GradeBadge grade={n.grade} size="sm" />
+        <div class="safer-body">
+          {p1Urls.has(n.url) ? (
+            <a class="safer-name" href={`${n.url}/`}>{n.name}</a>
+          ) : (
+            <span class="safer-name">{n.name}</span>
+          )}
+          <p class="safer-meta">
+            {Number.isFinite(n.rating) && <span>{n.rating}★</span>}
+            {Number.isFinite(n.distance_mi) && (
+              <span>{n.distance_mi === 0 ? 'nearby' : `${Number(n.distance_mi).toFixed(1)} mi away`}</span>
+            )}
+          </p>
+        </div>
+      </li>
+    ))}
+  </ul>
+</section>
+
+<style>
+  ul.saferlist { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .safer { display: flex; align-items: center; gap: 0.7rem; background: var(--surface); border: 1px solid var(--line); border-radius: 2px; padding: 0.7rem 0.8rem; }
+  .safer-body { min-width: 0; }
+  .safer-name { font-family: var(--display); font-weight: 700; font-size: 1rem; color: var(--ink); text-decoration: none; display: block; }
+  a.safer-name:hover { color: var(--citrus-ink); }
+  .safer-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.15rem 0 0; font-family: var(--mono); font-size: 0.74rem; color: var(--mute); }
+</style>

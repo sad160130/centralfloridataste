@@ -4,6 +4,7 @@ import RestaurantCard from '../components/RestaurantCard.astro';
 import restaurants from '../data/restaurants.json';
 import { counties, districts, phase1 } from '../lib/data.js';
 import { specialPages } from '../lib/manifest.js';
+import { siteHook } from '../lib/prose.js';
 
 const totalTracked = restaurants.length;
 
@@ -25,6 +26,9 @@ for (const r of phase1) {
   if (g in gradeCounts) gradeCounts[g] += 1;
 }
 const distTotal = GRADES.reduce((s, { g }) => s + gradeCounts[g], 0);
+
+// Site-wide "weird but true" hook — the wedge phenomenon as a shareable stat.
+const hook = siteHook(phase1);
 
 // Featured: every hidden gem, then the most-reviewed A-grade spots to fill out the row.
 const hiddenGems = phase1.filter((r) => r.hidden_gem);
@@ -106,6 +110,7 @@ const faqSchema = {
             dietary options and diner ratings. Browse by county, city, or one of the region&rsquo;s named
             dining districts.
           </p>
+          {hook && <p class="hero__hook">{hook.text}</p>}
         </div>
 
         <aside class="dist" aria-label="Health grade distribution across published restaurants">

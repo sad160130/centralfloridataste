@@ -198,6 +198,15 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
       .attribution a:hover { text-decoration: underline; }
       .attribution .updated { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); margin-top: 0.45rem; }
 
+      /* ---------- data callout (information-gain signal line) ---------- */
+      .lead-prose { font-size: 1.12rem; line-height: 1.55; color: var(--ink); margin: 0 0 1rem; max-width: 70ch; }
+      .signal { display: inline-block; font-family: var(--mono); font-size: 0.76rem; letter-spacing: 0.02em; font-weight: 600; text-transform: uppercase; color: var(--ink); background: #f4f0e7; border-left: 4px solid var(--mute); border-radius: 2px; padding: 0.5rem 0.8rem; margin: 0 0 1rem; }
+      .signal--wedge, .signal--alert { border-left-color: var(--g-f); color: #a02414; background: #f8e7e2; }
+      .signal--gem { border-left-color: var(--g-c); color: #8a5d00; background: #fcf4e2; }
+      .signal--trend { border-left-color: var(--g-b); color: #2d6b62; background: #ebf2f0; }
+      .signal--clean { border-left-color: var(--g-a); color: #187534; background: #e9f3ec; }
+      .signal--neutral, .signal--na { border-left-color: var(--mute); background: #f1efe9; color: var(--ink-2); }
+
       /* ---------- skip ---------- */
       .skip { position: absolute; left: -9999px; top: 0; z-index: 100; background: var(--ink); color: var(--ground); padding: 0.6rem 1rem; }
       .skip:focus { left: 0; }
@@ -338,6 +347,7 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
       .hero__title { margin: 0; font: 800 64px/0.98 var(--font-display); letter-spacing: -0.025em; color: var(--ink); }
       .hero__title .accent { color: var(--tangerine); }
       .hero__lede { margin: 28px 0 0; font: 400 19px/1.6 var(--font-body); color: var(--ink-soft); max-width: 30em; }
+      .hero__hook { margin: 20px 0 0; font: 500 15px/1.5 var(--font-body); color: var(--ink); border-left: 3px solid var(--g-f); padding-left: 14px; max-width: 34em; }
 
       /* grade-distribution panel — segments flex-grown by live counts */
       .dist { border: 1px solid var(--card-line); background: #fff; padding: 26px; border-radius: var(--radius-sm); }

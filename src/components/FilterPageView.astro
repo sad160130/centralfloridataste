@@ -4,6 +4,7 @@ import RestaurantCard from './RestaurantCard.astro';
 import { cityHubSlugs, districtHubSlugs } from '../lib/data.js';
 import { cityFilters, countyFilters, districtFilters, sortFilters } from '../lib/manifest.js';
 import { sortForHub } from '../lib/format.js';
+import { filterIntro } from '../lib/prose.js';
 
 const { page } = Astro.props;
 const { geoType, geoSlug, geoName, kind, flag, label, items, url } = page;
@@ -41,11 +42,9 @@ if (geoType === 'county') {
 
 /* ---------- copy ---------- */
 const h1 = `${label} Restaurants in ${geoDisplay}`;
-const dietPhrase = flag === 'healthy' ? 'healthy' : label.toLowerCase();
-const intro =
-  kind === 'cuisine'
-    ? `Discover ${items.length} ${label.toLowerCase()} ${items.length === 1 ? 'restaurant' : 'restaurants'} in ${geoDisplay}, Central Florida. Every listing includes its latest Florida health inspection grade, dietary options, and diner ratings to help you choose.`
-    : `Browse ${items.length} ${items.length === 1 ? 'restaurant' : 'restaurants'} in ${geoDisplay}, Central Florida, that offer ${dietPhrase} options. Each listing shows its latest health inspection grade and diner ratings.`;
+// Data-driven: opens on the most distinctive fact about THIS filtered list
+// (grade mix, a standout, a wedge) — see lib/prose.js.
+const intro = filterIntro(page).lead;
 
 const seoTitle = (
   page.disambiguate && geoType === 'district'
