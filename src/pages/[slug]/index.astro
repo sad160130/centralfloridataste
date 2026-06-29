@@ -5,6 +5,7 @@ import { counties, cities } from '../../lib/data.js';
 import { countyFilters, cityFilters, sortFilters, orphanCityFiltersForCounty, specialByCity, specialByCounty } from '../../lib/manifest.js';
 import { titleCase, sortForHub } from '../../lib/format.js';
 import { hubIntro } from '../../lib/prose.js';
+import ListIntro from '../../components/ListIntro.astro';
 
 // County hubs (/[county_slug]-county/) and city hubs (/[city_slug]/) both live at
 // the root as single dynamic segments — Astro permits one dynamic route per path
@@ -59,7 +60,6 @@ const h1 = `${geoLabel} Restaurant Health Grades`;
 // Data-driven intro: opens on whatever is most distinctive about THIS area's
 // data (grade mix, a local wedge, dominant cuisine, scale) — see lib/prose.js.
 const hub = hubIntro({ type, displayName, slug, items });
-const intro = hub.lead;
 
 const seoTitle = `${geoLabel} Restaurant Health Grades${isCounty ? '' : ', FL'}`.slice(0, 60);
 const seoDescription = (
@@ -160,7 +160,7 @@ const breadcrumbSchema = {
           <div class="stat"><b>{cityHubsInCounty.length}</b><span>Cities</span></div>
         )}
       </div>
-      <p class="lead">{intro}</p>
+      <ListIntro intro={hub} pclass="lead" />
 
       {isCounty && cityHubsInCounty.length > 0 && (
         <section>

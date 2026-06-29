@@ -1,6 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
+import { phase1 } from '../lib/data.js';
+import { siteStats } from '../lib/prose.js';
 
+const s = siteStats(phase1);
 const pageUrl = new URL('/about/', Astro.site).href;
 const orgId = `${new URL('/', Astro.site).href}#organization`;
 
@@ -41,6 +44,10 @@ const breadcrumbSchema = {
     <article>
       <p class="eyebrow">Transparency · About</p>
       <h1>About this guide</h1>
+      <p class="lead">
+        Today the guide covers {s.n.toLocaleString('en-US')} restaurants across {s.counties} Central
+        Florida counties — {s.aCount.toLocaleString('en-US')} of them grade A.
+      </p>
 
       <div class="prose">
         <p>

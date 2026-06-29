@@ -4,6 +4,7 @@ import RestaurantCard from './RestaurantCard.astro';
 import GradeAttribution from './GradeAttribution.astro';
 import { cityHubSlugs } from '../lib/data.js';
 import { specialIntro } from '../lib/prose.js';
+import ListIntro from './ListIntro.astro';
 
 const { page } = Astro.props;
 const { specialType, geoType, geoSlug, geoName, items, url } = page;
@@ -48,7 +49,7 @@ if (specialType === 'hidden_gems') {
   h1 = `Restaurants With the Lowest Health Scores in ${geoDisplay}`;
   crumbLabel = 'Lowest Health Scores';
 }
-const intro = specialIntro(page).lead;
+const intro = specialIntro(page);
 
 const showViolations = specialType === 'worst_health';
 
@@ -142,7 +143,7 @@ const breadcrumbSchema = {
 
     <article>
       <h1>{h1}</h1>
-      <p>{intro}</p>
+      <ListIntro intro={intro} />
 
       <GradeAttribution />
 

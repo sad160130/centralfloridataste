@@ -1,6 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
+import { phase1 } from '../lib/data.js';
+import { siteStats } from '../lib/prose.js';
 
+const s = siteStats(phase1);
 const pageUrl = new URL('/methodology/', Astro.site).href;
 const orgId = `${new URL('/', Astro.site).href}#organization`;
 
@@ -41,6 +44,11 @@ const breadcrumbSchema = {
     <article>
       <p class="eyebrow">Transparency · How we grade</p>
       <h1>How we grade restaurants</h1>
+      <p class="lead">
+        This method currently grades {s.n.toLocaleString('en-US')} restaurants across {s.counties}
+        {' '}Central Florida counties — {s.pctA}% hold an A, and {s.perfect.toLocaleString('en-US')}
+        {' '}score a perfect 100. Here is exactly how those grades are calculated.
+      </p>
 
       <div class="prose">
         <h2>The most important thing to know first</h2>

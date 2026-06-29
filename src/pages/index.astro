@@ -4,7 +4,7 @@ import RestaurantCard from '../components/RestaurantCard.astro';
 import restaurants from '../data/restaurants.json';
 import { counties, districts, phase1 } from '../lib/data.js';
 import { specialPages } from '../lib/manifest.js';
-import { siteHook } from '../lib/prose.js';
+import { siteHook, homeIntro } from '../lib/prose.js';
 import { REPORTS } from '../lib/assets.js';
 
 const totalTracked = restaurants.length;
@@ -30,6 +30,8 @@ const distTotal = GRADES.reduce((s, { g }) => s + gradeCounts[g], 0);
 
 // Site-wide "weird but true" hook — the wedge phenomenon as a shareable stat.
 const hook = siteHook(phase1);
+// Hero lede is now engine-driven (live counts) — see lib/prose.js.
+const homeLede = homeIntro(phase1);
 
 // Featured: every hidden gem, then the most-reviewed A-grade spots to fill out the row.
 const hiddenGems = phase1.filter((r) => r.hidden_gem);
@@ -104,13 +106,7 @@ const faqSchema = {
       <div class="hero__grid">
         <div class="hero__intro">
           <h1 class="hero__title">Central Florida Restaurants, Graded <span class="accent">A–F</span> by Health Inspection</h1>
-          <p class="hero__lede">
-            Compare Central Florida restaurants by the one thing Florida won&rsquo;t tell you: how clean
-            they are. We turn the state&rsquo;s public DBPR inspection records into clear A–F health grades
-            for {phase1.length} restaurants &mdash; {totalAGrade} currently grade A &mdash; alongside
-            dietary options and diner ratings. Browse by county, city, or one of the region&rsquo;s named
-            dining districts.
-          </p>
+          <p class="hero__lede">{homeLede}</p>
           {hook && <p class="hero__hook">{hook.text}</p>}
         </div>
 

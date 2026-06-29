@@ -1,0 +1,16 @@
+---
+// Renders a hub/filter/special intro in its data-chosen FORMAT — prose,
+// a stat-led callout, or a Q&A line — so page shapes vary, not just wording.
+// `pclass` is the paragraph class the template wants (e.g. "lead" on hubs).
+const { intro, pclass } = Astro.props;
+---
+{intro.format === 'stat' ? (
+  <>
+    <p class="signal signal--neutral">{intro.stat}</p>
+    <p class={pclass}>{intro.statLead}</p>
+  </>
+) : intro.format === 'qa' ? (
+  <p class={pclass}><strong>{intro.question}</strong> {intro.answer}</p>
+) : (
+  <p class={pclass}>{intro.lead}</p>
+)}

@@ -5,6 +5,7 @@ import { districts } from '../../../lib/data.js';
 import { districtFilters, sortFilters } from '../../../lib/manifest.js';
 import { sortForHub } from '../../../lib/format.js';
 import { hubIntro } from '../../../lib/prose.js';
+import ListIntro from '../../../components/ListIntro.astro';
 
 // One hub per named food district (Mills 50, Dr. Phillips, etc.).
 export function getStaticPaths() {
@@ -30,7 +31,7 @@ const ownFilters = sortFilters(districtFilters.get(slug) || []);
 
 const h1 = `Restaurants in ${name}`;
 // Data-driven intro, same engine as the county/city hubs — see lib/prose.js.
-const intro = hubIntro({ type: 'district', displayName: name, slug, items }).lead;
+const hub = hubIntro({ type: 'district', displayName: name, slug, items });
 
 const seoTitle = `${name} Restaurants — Central Florida Dining`.slice(0, 60);
 const seoDescription = (
@@ -94,7 +95,7 @@ const breadcrumbSchema = {
         {avgRating && <div class="stat"><b>{avgRating}</b><span>Avg rating</span></div>}
         <div class="stat"><b>{items.length}</b><span>Restaurants</span></div>
       </div>
-      <p class="lead">{intro}</p>
+      <ListIntro intro={hub} pclass="lead" />
 
       {ownFilters.length > 0 && (
         <section>

@@ -5,6 +5,7 @@ import { cityHubSlugs, districtHubSlugs } from '../lib/data.js';
 import { cityFilters, countyFilters, districtFilters, sortFilters } from '../lib/manifest.js';
 import { sortForHub } from '../lib/format.js';
 import { filterIntro } from '../lib/prose.js';
+import ListIntro from './ListIntro.astro';
 
 const { page } = Astro.props;
 const { geoType, geoSlug, geoName, kind, flag, label, items, url } = page;
@@ -43,8 +44,8 @@ if (geoType === 'county') {
 /* ---------- copy ---------- */
 const h1 = `${label} Restaurants in ${geoDisplay}`;
 // Data-driven: opens on the most distinctive fact about THIS filtered list
-// (grade mix, a standout, a wedge) — see lib/prose.js.
-const intro = filterIntro(page).lead;
+// (grade mix, a standout, a wedge), in a data-chosen format — see lib/prose.js.
+const intro = filterIntro(page);
 
 const seoTitle = (
   page.disambiguate && geoType === 'district'
@@ -140,7 +141,7 @@ const breadcrumbSchema = {
 
     <article>
       <h1>{h1}</h1>
-      <p>{intro}</p>
+      <ListIntro intro={intro} />
 
       <section>
         <h2>{items.length} {label.toLowerCase()} {items.length === 1 ? 'restaurant' : 'restaurants'}</h2>

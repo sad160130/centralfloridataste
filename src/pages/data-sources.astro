@@ -1,6 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
+import { phase1 } from '../lib/data.js';
+import { siteStats } from '../lib/prose.js';
 
+const s = siteStats(phase1);
 const pageUrl = new URL('/data-sources/', Astro.site).href;
 const orgId = `${new URL('/', Astro.site).href}#organization`;
 
@@ -56,6 +59,10 @@ const breadcrumbSchema = {
     <article>
       <p class="eyebrow">Transparency · Data</p>
       <h1>Our data &amp; sources</h1>
+      <p class="lead">
+        From the sources below we currently publish {s.n.toLocaleString('en-US')} graded restaurants
+        ({s.pctA}% A) across {s.counties} Central Florida counties, refreshed on a regular cycle.
+      </p>
 
       <div class="prose">
         <p>A short, linkable summary of exactly what we use and where it comes from:</p>

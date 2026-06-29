@@ -1,8 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
-import { counties } from '../lib/data.js';
+import { counties, phase1 } from '../lib/data.js';
+import { siteStats } from '../lib/prose.js';
 
 const countyList = [...counties].sort((a, b) => b.items.length - a.items.length);
+const s = siteStats(phase1);
 ---
 
 <Base
@@ -14,8 +16,10 @@ const countyList = [...counties].sort((a, b) => b.items.length - a.items.length)
     <article>
       <h1>Page Not Found</h1>
       <p>
-        Sorry, we couldn&rsquo;t find that page. It may have moved or never existed. Try one of the
-        links below to find restaurants across Central Florida.
+        Sorry, we couldn&rsquo;t find that page. It may have moved or never existed. We grade
+        {' '}{s.n.toLocaleString('en-US')} restaurants across {s.counties} Central Florida counties —
+        {' '}{s.pctA}% currently hold an A — so there&rsquo;s a good chance what you want is one of the
+        links below.
       </p>
 
       <section>

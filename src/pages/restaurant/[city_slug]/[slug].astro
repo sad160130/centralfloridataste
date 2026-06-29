@@ -193,7 +193,15 @@ const breadcrumbSchema = {
         <p class={`signal signal--${prose.callout.kind}`}>{prose.callout.text}</p>
       )}
 
-      <p class="lead-prose">{prose.lead}</p>
+      {prose.format === 'qa' ? (
+        <p class="lead-prose"><strong>{prose.qa.q}</strong> {prose.qa.a}</p>
+      ) : prose.format === 'table' ? (
+        <dl class="quickfacts">
+          {prose.quickfacts.map((f) => (<><dt>{f.k}</dt><dd>{f.v}</dd></>))}
+        </dl>
+      ) : (
+        <p class="lead-prose">{prose.lead}</p>
+      )}
       {prose.support && <p>{prose.support}</p>}
 
       {(r.directions_url || telHref) && (
@@ -359,6 +367,12 @@ const breadcrumbSchema = {
     .detail-head { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; margin: 0 0 0.6rem; }
     .detail-head h1 { margin: 0; }
     .detail-head h1 .badge { margin-left: 0.5rem; }
+    /* table-format lead — a tight verdict card */
+    dl.quickfacts { margin: 0 0 1.2rem; max-width: 30rem; border: 1px solid var(--line-strong); border-left: 4px solid var(--citrus); border-radius: 2px; display: grid; grid-template-columns: max-content 1fr; }
+    dl.quickfacts dt { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mute); padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--line); align-self: center; }
+    dl.quickfacts dd { margin: 0; font-weight: 600; color: var(--ink); padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--line); }
+    dl.quickfacts dt:last-of-type, dl.quickfacts dd:last-of-type { border-bottom: 0; }
+    .lead-prose strong { color: var(--ink); }
     .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 1.6rem; }
     .btn {
       display: inline-block; background: var(--citrus); color: var(--ink); text-decoration: none;

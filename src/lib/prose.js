@@ -15,7 +15,7 @@
 //      violations, the inspection trend, the county percentile, the enforcement
 //      disposition, the safer-nearby comparison — in plain language.
 // ---------------------------------------------------------------------------
-import { titleCase, formatDate, listJoin } from './format.js';
+import { titleCase, formatDate, formatMonthYear, listJoin } from './format.js';
 
 // FNV-1a → small int. Stable across builds for a given string.
 function seedOf(s) {
@@ -54,7 +54,62 @@ export function listingProse(r, opts = {}) {
   out.lead = tidy(out.lead);
   out.support = tidy(out.support);
   if (out.callout) out.callout.text = tidy(out.callout.text);
+  attachListingFormat(r, out);
   return out;
+}
+
+// FORMAT ROTATION (structural variety): same facts, different page skeleton.
+// Narrative-strong profiles stay prose; the rest rotate prose / Q&A / data-table
+// by a stable per-slug hash, so adjacent pages don't share a shape.
+function attachListingFormat(r, out) {
+  const g = String(r.health_grade || '').toUpperCase();
+  const known = ['A', 'B', 'C', 'D', 'F'].includes(g);
+  const score = Number.isFinite(r.health_score) ? r.health_score : null;
+  const pct = Number.isFinite(r.health_percentile) ? r.health_percentile : null;
+  const hasRating = Number.isFinite(r.rating) && Number.isFinite(r.reviews_count) && r.reviews_count > 0;
+  const county = r.county || null;
+  const date = formatDate(r.latest_inspection_date);
+  const mY = formatMonthYear(r.latest_inspection_date);
+  const viol = violationParts(r);
+  const totalViol = (r.hp_violations || 0) + (r.intermediate_violations || 0) + (r.basic_violations || 0);
+  const art = known ? gradeArticle(g) : null;
+  const key = r.slug || r.url || r.name || 'x';
+  const fseed = seedOf(key + '#fmt');
+  const qseed = seedOf(key + '#q');
+
+  const proseOnly = ['unrated', 'emergency', 'wedge'].includes(out.profile);
+  out.format = proseOnly ? 'prose' : pick(['prose', 'prose', 'qa', 'table'], fseed);
+
+  // Q&A block — a direct answer-engine-friendly verdict
+  if (known) {
+    // All questions are positively-framed yes/no, so the verdict answer fits.
+    const questions = [
+      `Is ${r.name} clean?`,
+      `Did ${r.name} pass its last health inspection?`,
+      `Is ${r.name} a safe place to eat?`,
+      `Is ${r.name}'s kitchen up to standard?`,
+      `Does ${r.name} keep a clean kitchen?`,
+      `Would ${r.name} pass a health inspection today?`,
+    ];
+    const verdict =
+      g === 'A' ? `Yes — ${art} grade, ${score}/100, at its most recent inspection${date ? ` on ${date}` : ''}.`
+        : g === 'B' ? `Mostly — ${art} (${score}/100) at its latest inspection${date ? `, ${date}` : ''}.`
+          : g === 'C' ? `Not quite — only ${art}, ${score}/100, the last time the state checked${date ? ` (${date})` : ''}.`
+            : `No — ${art}, ${score}/100, at its most recent inspection${date ? ` on ${date}` : ''}.`;
+    const second = totalViol === 0 ? `Inspectors cited no violations.` : viol.length ? `That visit logged ${listJoin(viol)} violation${totalViol === 1 ? '' : 's'}.` : '';
+    out.qa = { q: pick(questions, qseed), a: tidy(`${verdict} ${second}`) };
+  } else {
+    out.qa = { q: `What's the health grade for ${r.name}?`, a: `It isn't rated yet — there's no gradable inspection on record, so we don't assign one.` };
+  }
+
+  // Data-table block — a tight verdict card
+  const qf = [{ k: 'Health grade', v: known ? `${g} · ${score}/100` : 'Not rated' }];
+  if (pct !== null && county) qf.push({ k: `${county} County rank`, v: pct >= 99 ? 'Among the cleanest' : pct <= 1 ? 'Near the bottom' : `Safer than ${pct}%` });
+  if (hasRating) qf.push({ k: 'Diner rating', v: `${r.rating} ★ · ${num(r.reviews_count)} reviews` });
+  if (known) qf.push({ k: 'Violations', v: totalViol === 0 ? 'None cited' : listJoin(viol) });
+  if (mY) qf.push({ k: 'Last inspected', v: mY });
+  out.quickfacts = qf;
+  if (out.format === 'table' && qf.length < 3) out.format = 'prose';
 }
 
 function buildListingProse(r, opts = {}) {
@@ -252,6 +307,8 @@ function buildListingProse(r, opts = {}) {
       `Both halves check out at ${r.name}. The state scores it ${score}/100 (${art}); ${num(rev)} diners score it ${rating}. That alignment is rarer than it should be.`,
       `${r.name} earns its reputation twice over — ${rating} stars from ${num(rev)} diners and ${art}, ${score}/100 from the inspector.`,
       `No asterisks on ${r.name}: ${art} kitchen at ${score}/100, ${rating} stars across ${num(rev)} reviews. The food and the inspection agree.`,
+      `${r.name} is a rare double — ${art} kitchen at ${score}/100 and ${rating} stars from ${num(rev)} diners.`,
+      `You can trust both numbers at ${r.name}: ${score}/100 from the state, ${rating}★ from ${num(rev)} diners.`,
     ];
     const sA = join(
       totalViol === 0 ? `Its most recent inspection${date ? ` on ${date}` : ''} cited no violations at all` : `Its latest inspection${date ? ` on ${date}` : ''} cited only ${violCount}`,
@@ -272,6 +329,9 @@ function buildListingProse(r, opts = {}) {
       `Among ${county} County restaurants, ${r.name} ranks near the top for cleanliness — ${pctSafer}, with ${art} grade at ${score}/100.`,
       `${r.name} grades better than most of its neighbors: ${pctSafer}, holding ${art} at ${score}/100.`,
       `Few ${county} County kitchens score higher than ${r.name} — ${art} at ${score}/100, ${pctSafer}.`,
+      `${r.name} is one of the cleaner kitchens in ${county} County: ${pctSafer}, at ${art} ${score}/100.`,
+      `On health score, ${r.name} outranks most of ${county} County — ${pctSafer}, holding ${art} (${score}/100).`,
+      `${r.name} lands in the top tier for ${county} County cleanliness: ${art}, ${score}/100, ${pctSafer}.`,
     ];
     const support = join(
       totalViol === 0 ? `Its most recent inspection${date ? ` on ${date}` : ''} came back clean` : `Its latest inspection${date ? ` on ${date}` : ''} cited ${violCount}`,
@@ -290,6 +350,10 @@ function buildListingProse(r, opts = {}) {
       `No drama at ${r.name}: ${art} grade, ${score}/100, ${totalViol === 0 ? 'a clean inspection' : `${violCount} cited`} at its last visit${date ? ` on ${date}` : ''}.`,
       `${r.name} passes cleanly. The state put it at ${art}, ${score}/100, at its latest health inspection${date ? ` on ${date}` : ''}.`,
       `Solid and unflashy: ${r.name} holds ${art} health grade, ${score}/100, out of its most recent ${county ? `${county} County ` : ''}inspection${date ? ` on ${date}` : ''}.`,
+      `${r.name} does the basics right — ${art} grade, ${score}/100, at its most recent inspection${date ? ` on ${date}` : ''}.`,
+      `Nothing to flag at ${r.name}: it came out of its latest inspection${date ? ` (${date})` : ''} ${art} at ${score}/100.`,
+      `${r.name} sits comfortably in A territory, ${score}/100 at its last health check${date ? ` on ${date}` : ''}.`,
+      `${r.name} is a quiet keeper — ${art} kitchen, ${score}/100, no fuss${date ? `, last checked ${date}` : ''}.`,
     ];
     const sA = join(
       pctSafer ? `On health score it's ${pctSafer}` : '',
@@ -315,6 +379,8 @@ function buildListingProse(r, opts = {}) {
     `${r.name} grades ${art} — ${score}/100 — a solid-but-not-spotless result at its latest ${county ? `${county} County ` : ''}inspection${date ? ` on ${date}` : ''}.`,
     `Middle of the road for ${r.name}: ${art} (${score}/100) at its last health inspection${date ? ` on ${date}` : ''}.`,
     `${r.name} comes out ${art}, ${score}/100 — passing, with room to tighten up, per its most recent inspection${date ? ` on ${date}` : ''}.`,
+    `${r.name} is a fair-to-middling result — ${art}, ${score}/100, at its latest inspection${date ? ` on ${date}` : ''}.`,
+    `Not spotless, not failing: ${r.name} grades ${art} at ${score}/100${date ? ` as of ${date}` : ''}.`,
   ];
   const mA = join(
     violList.length ? `Inspectors cited ${violCount}` : 'No violations were itemized at that visit',
@@ -414,7 +480,27 @@ export function hubIntro(area) {
   const calloutBits = [`${num(n)} graded`, `${pctA}% A`];
   if (riskCount > 0) calloutBits.push(`${riskCount} at D/F`);
   if (avgRating) calloutBits.push(`${avgRating}★ avg`);
-  return { lead: tidy(lead), callout: calloutBits.join(' · '), angle };
+
+  // --- format rotation: prose / stat-lead / Q&A, by stable hash ---
+  const fseed = seedOf((slug || displayName || 'h') + '#fmt');
+  const stat = calloutBits.join(' · ');
+  const statLeads = [
+    safest ? `${safest.name} leads at ${safest.health_score}/100; the rest follow, best grade first.` : null,
+    `Sorted best grade first, so the safest tables rise to the top.`,
+    `Every kitchen below carries a grade from its most recent Florida inspection.`,
+    `Tap any name for its full violation record and inspection history.`,
+    riskCount ? `${riskCount} sit at D or F — the list makes them easy to spot.` : null,
+    avgRating ? `Diner ratings here average ${avgRating} stars; the grades tell the other half of the story.` : null,
+    `Grades come from each kitchen's latest inspection, not its reviews.`,
+    pctA >= 60 ? `Most grade well — ${pctA}% hold an A — but the list flags every exception.` : `Only ${pctA}% hold an A, so it pays to check before you go.`,
+    wedge ? `Some highly-rated names still grade poorly here; the list sorts that out.` : null,
+  ].filter(Boolean);
+  const statLead = pick(statLeads, seedOf((slug || 'h') + '#sl'));
+  const question = `How clean are ${geo}'s restaurants?`;
+  const answer = `${pctA}% of the ${num(n)} we grade hold an A${safest ? `, led by ${safest.name} at ${safest.health_score}/100` : ''}.${riskCount ? ` ${riskCount} sit at D or F.` : ''}`;
+  const format = n < 5 ? 'prose' : pick(['prose', 'prose', 'stat', 'qa'], fseed);
+
+  return { format, lead: tidy(lead), stat, statLead, question: tidy(question), answer: tidy(answer), callout: stat, angle };
 }
 
 // ===========================================================================
@@ -479,7 +565,14 @@ export function filterIntro(page) {
   } else {
     lead = `${n} ${noun} in ${geo}, every one graded from its most recent Florida DBPR inspection. ${aCount} currently hold an A${avgRating ? `, on an average ${avgRating}-star diner rating` : ''}.`;
   }
-  return { lead: tidy(lead), angle };
+
+  const fseed = seedOf((url || label) + '#fmt');
+  const stat = [`${num(n)} graded`, `${pctA}% A`, avgRating ? `${avgRating}★ avg` : null, best && Number.isFinite(best.health_score) ? `best ${best.health_score}/100` : null].filter(Boolean).join(' · ');
+  const statLead = `Each of these ${noun} in ${geo} carries its latest Florida health grade — sorted best first.`;
+  const question = `Which ${labelLow} ${kind === 'cuisine' ? 'restaurants' : 'spots'} in ${geo} grade cleanest?`;
+  const answer = `${aCount} of these ${n} hold an A${best ? `; ${best.name} tops them at ${scoreWord(best.health_score)}` : ''}.`;
+  const format = n < 4 ? 'prose' : pick(['prose', 'prose', 'stat', 'qa'], fseed);
+  return { format, lead: tidy(lead), stat, statLead: tidy(statLead), question: tidy(question), answer: tidy(answer), angle };
 }
 
 // ===========================================================================
@@ -492,23 +585,22 @@ export function specialIntro(page) {
   const geo = geoType === 'county' ? `${geoName} County` : geoName;
   const n = items.length;
   const plural = n === 1 ? 'restaurant' : 'restaurants';
+  const top = topRated(items);
+  const best = bestByScore(items);
+  const worst = worstByScore(items);
 
+  let leads, qa;
   if (specialType === 'top_rated_safe') {
-    const top = topRated(items);
-    const best = bestByScore(items);
-    const leads = [
+    leads = [
       `Clean kitchen, happy room — and these ${n} ${geo} ${plural} pull off both at once. Every one clears an A health grade on top of strong diner ratings.${top ? ` ${top.name} tops the room at ${top.rating} stars.` : ''}`,
       `Both halves check out across all ${n} of these ${geo} ${plural}: an A on the inspection and high marks from diners.${best ? ` ${best.name} grades ${scoreWord(best.health_score)}.` : ''}`,
       `These are the ${geo} ${plural} you can recommend without a caveat — ${n} spots that earn an A health grade and a strong rating in the same breath.${top ? ` Start with ${top.name} (${top.rating}★).` : ''}`,
     ];
-    return { lead: tidy(pick(leads, seed)) };
-  }
-
-  if (specialType === 'worst_health') {
-    const worst = worstByScore(items);
+    qa = { q: `What are the cleanest top-rated restaurants in ${geo}?`, a: `All ${n} of these clear an A health grade and strong diner ratings${top ? `; ${top.name} leads at ${top.rating}★` : ''}.` };
+  } else if (specialType === 'worst_health') {
     const wedge = wedgeIn(items);
     const wv = worst ? violOf(worst) : null;
-    const leads = [
+    leads = [
       worst
         ? `${worst.name} sits at the bottom of the barrel in ${geo}: ${worst.health_score}/100 at its most recent inspection${wv ? `, with ${wv} violations on the report` : ''}. It leads this list of ${n} kitchens that graded D or F last time the state walked in.`
         : `These ${n} ${geo} ${plural} graded D or F at their most recent Florida inspection.`,
@@ -517,18 +609,41 @@ export function specialIntro(page) {
         : null,
       `No sugar-coating it: these ${n} ${geo} ${plural} scored a D or F at their most recent Florida health inspection${worst ? `, ${worst.name} lowest of all at ${worst.health_score}/100` : ''}. The state records the violations; we just rank them, worst first.`,
     ].filter(Boolean);
-    return { lead: tidy(pick(leads, seed)) };
+    qa = { q: `Which ${geo} restaurants have the worst health grades?`, a: `These ${n} graded D or F at their most recent inspection${worst ? `, ${worst.name} lowest at ${worst.health_score}/100` : ''}.` };
+  } else {
+    leads = [
+      `The algorithm hasn't caught up to these ${n} ${geo} ${plural} yet: 4.5 stars or better on fewer than 200 reviews, each with a clean health grade to match.${top ? ` ${top.name} leads at ${top.rating} stars on just ${num(top.reviews_count)} reviews.` : ''}`,
+      `Locals know; the search results don't. These ${n} ${geo} ${plural} pair high ratings with low review counts and solid inspections — under-the-radar by the numbers.${best ? ` ${best.name} grades ${scoreWord(best.health_score)}.` : ''}`,
+      `Small crowds, big ratings, clean kitchens. These ${n} ${geo} ${plural} each clear 4.5 stars on under 200 reviews — the discoveries worth making before everyone else does.`,
+    ];
+    qa = { q: `What are the best hidden-gem restaurants in ${geo}?`, a: `${n} spots with 4.5★ or better on under 200 reviews and clean grades${top ? `; ${top.name} leads at ${top.rating}★` : ''}.` };
   }
 
-  // hidden_gems
-  const top = topRated(items);
-  const best = bestByScore(items);
-  const leads = [
-    `The algorithm hasn't caught up to these ${n} ${geo} ${plural} yet: 4.5 stars or better on fewer than 200 reviews, each with a clean health grade to match.${top ? ` ${top.name} leads at ${top.rating} stars on just ${num(top.reviews_count)} reviews.` : ''}`,
-    `Locals know; the search results don't. These ${n} ${geo} ${plural} pair high ratings with low review counts and solid inspections — under-the-radar by the numbers.${best ? ` ${best.name} grades ${scoreWord(best.health_score)}.` : ''}`,
-    `Small crowds, big ratings, clean kitchens. These ${n} ${geo} ${plural} each clear 4.5 stars on under 200 reviews — the discoveries worth making before everyone else does.`,
-  ];
-  return { lead: tidy(pick(leads, seed)) };
+  const format = n < 4 ? 'prose' : pick(['prose', 'prose', 'qa'], seedOf((url || '') + '#fmt'));
+  return { format, lead: tidy(pick(leads, seed)), question: tidy(qa.q), answer: tidy(qa.a) };
+}
+
+// ===========================================================================
+// SITE-WIDE STATS — live facts for the homepage lede + trust pages + 404.
+// ===========================================================================
+export function siteStats(items) {
+  const n = items.length;
+  const by = (g) => items.filter((r) => grOf(r) === g).length;
+  const counties = new Set(items.map((r) => r.county).filter(Boolean)).size;
+  const perfect = items.filter((r) => r.health_score === 100).length;
+  const rated = items.filter((r) => Number.isFinite(r.rating));
+  return {
+    n, counties,
+    aCount: by('A'), pctA: n ? Math.round((by('A') / n) * 100) : 0,
+    fCount: by('F'), dCount: by('D'), perfect,
+    avgRating: rated.length ? (rated.reduce((s, r) => s + r.rating, 0) / rated.length).toFixed(1) : null,
+  };
+}
+
+// Homepage lede — data-driven (engine-sourced live counts), one strong paragraph.
+export function homeIntro(items) {
+  const s = siteStats(items);
+  return `Compare Central Florida restaurants by the one thing Florida won't tell you: how clean they are. We turn the state's public DBPR inspection records into clear A–F health grades for ${num(s.n)} restaurants across ${s.counties} counties — ${num(s.aCount)} currently grade A, ${num(s.perfect)} with a perfect 100 — alongside dietary options and diner ratings. Browse by county, city, or one of the region's named dining districts.`;
 }
 
 // ===========================================================================
