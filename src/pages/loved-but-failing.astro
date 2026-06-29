@@ -1,0 +1,162 @@
+---
+import Base from '../layouts/Base.astro';
+import { lovedButFailing as rows, lovedButFailingStats as st, REPORTS, SOURCE, AS_OF } from '../lib/assets.js';
+
+const siteUrl = new URL('/', Astro.site).href;
+const pageUrl = new URL('/loved-but-failing/', Astro.site).href;
+
+const seoTitle = 'Loved but Failing: Top-Rated Florida Restaurants With F Grades';
+const seoDescription =
+  `${st.count} Central Florida restaurants hold a 4.5-star rating or better while carrying a D or F ` +
+  `health grade. Ranked by the gap between what diners say and what inspectors found.`;
+
+const webpageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Loved but Failing — Central Florida',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': `${siteUrl}#organization` },
+};
+const itemListSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Top-rated Central Florida restaurants with failing health grades',
+  numberOfItems: rows.length,
+  itemListElement: rows.map((r, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    url: new URL(`${r.url}/`, Astro.site).href,
+    name: r.name,
+  })),
+};
+const others = REPORTS.filter((r) => r.url !== '/loved-but-failing/');
+const pos = (v) => Math.max(0, Math.min(100, v));
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script type="application/ld+json" slot="jsonld" set:html={JSON.stringify([webpageSchema, itemListSchema])} />
+
+  <main>
+    <p class="eyebrow">Data report · {SOURCE} · {AS_OF}</p>
+    <h1 class="lf-h1">Loved but <span class="lf-fail">Failing</span></h1>
+    <p class="lead">
+      {st.count} Central Florida restaurants keep a 4.5-star diner rating or better — and carry a D or F
+      health grade anyway. {st.f} of them are failing outright. Each bar below is the distance between
+      what the crowd says and what the inspector found. The widest gaps come first.
+    </p>
+
+    {st.worst && (
+      <div class="lf-hero">
+        <div class="lf-hero-side lf-hero-love">
+          <span class="lf-hero-num">{st.worst.rating}★</span>
+          <span class="lf-hero-lbl">{st.worst.reviews?.toLocaleString('en-US')} diner reviews</span>
+        </div>
+        <div class="lf-hero-mid"><span>vs</span></div>
+        <div class="lf-hero-side lf-hero-fail">
+          <span class="lf-hero-num">Grade {st.worst.grade}</span>
+          <span class="lf-hero-lbl">{st.worst.score} / 100 health score</span>
+        </div>
+        <a class="lf-hero-name" href={`${st.worst.url}/`}>{st.worst.name} — {st.worst.city}</a>
+      </div>
+    )}
+
+    <ol class="lf-list">
+      {rows.map((r) => (
+        <li class="lf-row">
+          <div class="lf-meta">
+            <a class="lf-name" href={`${r.url}/`}>{r.name}</a>
+            <span class="lf-sub">{r.city} · {r.county} County · {r.reviews?.toLocaleString('en-US')} reviews</span>
+          </div>
+          <div class="lf-track" aria-hidden="true">
+            <span class="lf-gap" style={`left:${pos(r.score)}%; width:${pos(r.rating * 20 - r.score)}%`}></span>
+            <span class={`lf-end lf-grade gr-${r.grade}`} style={`left:${pos(r.score)}%`}>{r.grade}</span>
+            <span class="lf-end lf-star" style={`left:${pos(r.rating * 20)}%`}>★</span>
+          </div>
+          <div class="lf-nums">
+            <span class="lf-star-n">{r.rating}★</span>
+            <span class={`lf-grade-n gr-${r.grade}`}>{r.grade} · {r.score}</span>
+          </div>
+        </li>
+      ))}
+    </ol>
+
+    <p class="lf-foot">
+      A high rating is a verdict on the food. A health grade is a verdict on the kitchen. This list is
+      every Central Florida restaurant we track where the two disagree most — {st.f} graded F, {st.d}
+      graded D, all rated 4.5 stars or higher. Every grade is calculated from each restaurant&rsquo;s
+      most recent Florida inspection; tap any name for the full violation record.
+    </p>
+
+    <section class="lf-more">
+      <h2>More data reports</h2>
+      <ul class="reportcards">
+        {others.map((p) => (
+          <li><a class="reportcard" href={p.url}>
+            <span class="rc-kicker">{p.kicker}</span>
+            <span class="rc-title">{p.title}</span>
+            <span class="rc-blurb">{p.blurb}</span>
+          </a></li>
+        ))}
+      </ul>
+    </section>
+
+    <p class="source-note">
+      Source: {SOURCE}, as of {AS_OF}. Grades are calculated by us from each restaurant&rsquo;s most
+      recent inspection — Florida does not issue letter grades. Diner ratings and review counts are
+      third-party. <a href="/methodology/">How we calculate grades →</a>
+    </p>
+  </main>
+
+  <style>
+    .lf-h1 { font-size: clamp(2.6rem, 7vw, 5rem); line-height: 0.95; letter-spacing: -0.03em; margin: 0.2rem 0 0; }
+    .lf-fail { color: var(--g-f); }
+    main > .lead { max-width: 60ch; }
+
+    /* hero split */
+    .lf-hero { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 0; margin: 2rem 0 0; border: 1px solid var(--line-strong); border-radius: 2px; overflow: hidden; position: relative; }
+    .lf-hero-side { padding: 1.6rem 1.4rem 2.6rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .lf-hero-love { background: #fdf6e9; }
+    .lf-hero-fail { background: var(--wash-f); text-align: right; }
+    .lf-hero-num { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1; letter-spacing: -0.02em; }
+    .lf-hero-love .lf-hero-num { color: #9a6b00; }
+    .lf-hero-fail .lf-hero-num { color: var(--g-f); }
+    .lf-hero-lbl { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mute); }
+    .lf-hero-mid { display: flex; align-items: center; justify-content: center; padding: 0 0.6rem; background: var(--ink); }
+    .lf-hero-mid span { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; }
+    .lf-hero-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.55rem 1.4rem; background: var(--ink); color: #fff; font-family: var(--display); font-weight: 700; font-size: 1rem; text-decoration: none; }
+    .lf-hero-name:hover { color: var(--citrus); }
+
+    /* dumbbell rows */
+    .lf-list { list-style: none; padding: 0; margin: 2.4rem 0 0; display: grid; gap: 0.1rem; }
+    .lf-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(160px, 2fr) auto; align-items: center; gap: 1rem; padding: 0.6rem 0; border-top: 1px solid var(--hairline); }
+    .lf-row:first-child { border-top: 0; }
+    .lf-meta { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .lf-name { font-family: var(--display); font-weight: 700; font-size: 0.98rem; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lf-name:hover { color: var(--citrus-ink); }
+    .lf-sub { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lf-track { position: relative; height: 24px; }
+    .lf-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--hairline); }
+    .lf-gap { position: absolute; top: 50%; height: 6px; transform: translateY(-50%); background: linear-gradient(90deg, var(--g-f), var(--g-c)); border-radius: 3px; }
+    .lf-end { position: absolute; top: 50%; transform: translate(-50%, -50%); }
+    .lf-star { color: var(--g-c); font-size: 1rem; line-height: 1; text-shadow: 0 0 0 #fff; }
+    .lf-grade { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 800; font-size: 0.7rem; color: #fff; border-radius: 2px; box-shadow: 0 0 0 2px var(--ground); }
+    .lf-nums { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-family: var(--mono); }
+    .lf-star-n { font-size: 0.8rem; font-weight: 600; color: #9a6b00; }
+    .lf-grade-n { font-size: 0.72rem; font-weight: 600; }
+    .gr-A { background: var(--ga-solid); } .gr-B { background: var(--gb-solid); }
+    .gr-C { background: var(--gc-solid); } .gr-D { background: var(--gd-solid); } .gr-F { background: var(--gf-solid); }
+    .lf-grade-n.gr-A, .lf-grade-n.gr-B, .lf-grade-n.gr-C, .lf-grade-n.gr-D, .lf-grade-n.gr-F { background: transparent; }
+    .lf-grade-n.gr-A { color: var(--ga-solid); } .lf-grade-n.gr-B { color: var(--gb-solid); }
+    .lf-grade-n.gr-C { color: #8a5d00; } .lf-grade-n.gr-D { color: var(--gd-solid); } .lf-grade-n.gr-F { color: var(--g-f); }
+
+    .lf-foot { max-width: 64ch; margin: 2.2rem 0 0; color: var(--ink-2); }
+    .lf-more { margin-top: 2.6rem; }
+
+    @media (max-width: 620px) {
+      .lf-row { grid-template-columns: 1fr auto; }
+      .lf-track { grid-column: 1 / -1; order: 3; }
+      .lf-hero-side { padding-bottom: 2.4rem; }
+    }
+  </style>
+</Base>

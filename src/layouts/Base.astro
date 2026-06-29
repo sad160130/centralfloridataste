@@ -1,6 +1,7 @@
 ---
 import { counties, districts } from '../lib/data.js';
 import { countyFilters } from '../lib/manifest.js';
+import { REPORTS } from '../lib/assets.js';
 
 export interface Props {
   title: string;
@@ -207,6 +208,20 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
       .signal--clean { border-left-color: var(--g-a); color: #187534; background: #e9f3ec; }
       .signal--neutral, .signal--na { border-left-color: var(--mute); background: #f1efe9; color: var(--ink-2); }
 
+      /* ---------- signature report pages ---------- */
+      .source-note { margin-top: 2.6rem; padding-top: 1rem; border-top: 1px solid var(--line-strong); font-family: var(--mono); font-size: 0.72rem; line-height: 1.5; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mute); max-width: 84ch; }
+      .source-note a { color: var(--citrus-ink); text-decoration: none; }
+      .source-note a:hover { text-decoration: underline; }
+      ul.reportcards { list-style: none; padding: 0; margin: 1.4rem 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
+      .reportcard { display: flex; flex-direction: column; gap: 0.28rem; background: var(--surface); border: 1px solid var(--line-strong); border-left: 4px solid var(--citrus); border-radius: 2px; padding: 0.9rem 1rem; text-decoration: none; color: var(--ink); transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
+      .reportcard:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -14px rgba(25,24,21,.3); border-color: var(--citrus); }
+      .reportcard .rc-kicker { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--citrus-ink); }
+      .reportcard .rc-title { font-family: var(--display); font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
+      .reportcard .rc-blurb { font-size: 0.82rem; color: var(--ink-2); line-height: 1.4; }
+      .reports-intro { color: var(--ink-2); margin: 0.3rem 0 0; max-width: 62ch; }
+      @media (max-width: 880px) { ul.reportcards { grid-template-columns: 1fr 1fr; } }
+      @media (max-width: 560px) { ul.reportcards { grid-template-columns: 1fr; } }
+
       /* ---------- skip ---------- */
       .skip { position: absolute; left: -9999px; top: 0; z-index: 100; background: var(--ink); color: var(--ground); padding: 0.6rem 1rem; }
       .skip:focus { left: 0; }
@@ -385,7 +400,7 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
 
       /* ---------- footer ---------- */
       .site-footer { background: var(--ink); color: #cfcdc6; margin-top: 4rem; }
-      .footer-inner { display: grid; grid-template-columns: 1.5fr 0.9fr 0.9fr 0.9fr 1.2fr; gap: 1.75rem 2rem; padding: 3rem 1.4rem; max-width: 1220px; margin: 0 auto; }
+      .footer-inner { display: grid; grid-template-columns: 1.4fr 0.85fr 0.85fr 0.8fr 0.8fr 1.05fr; gap: 1.75rem 1.7rem; padding: 3rem 1.4rem; max-width: 1220px; margin: 0 auto; }
       .footer-brand .fb-mark { width: 30px; height: 30px; border-radius: 2px; display: inline-block; vertical-align: middle; background: linear-gradient(90deg, var(--g-a) 0 20%, var(--g-b) 20% 40%, var(--g-c) 40% 60%, var(--g-d) 60% 80%, var(--g-f) 80% 100%); }
       .footer-brand b { font-family: var(--display); font-weight: 800; font-size: 1.3rem; color: var(--citrus); vertical-align: middle; margin-left: 0.45rem; }
       .footer-brand p { font-size: 0.86rem; color: #9b988f; max-width: 36ch; margin: 0.8rem 0 0; line-height: 1.55; }
@@ -484,6 +499,12 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
             <li><a href="/methodology/">Methodology</a></li>
             <li><a href="/data-sources/">Data &amp; sources</a></li>
             <li><a href="/about/">About</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Data reports</h4>
+          <ul class="footer-links">
+            {REPORTS.map((p) => <li><a href={p.url}>{p.title}</a></li>)}
           </ul>
         </div>
         <div>

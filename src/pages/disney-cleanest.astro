@@ -1,0 +1,122 @@
+---
+import Base from '../layouts/Base.astro';
+import { disney, REPORTS, SOURCE, AS_OF } from '../lib/assets.js';
+
+const siteUrl = new URL('/', Astro.site).href;
+const pageUrl = new URL('/disney-cleanest/', Astro.site).href;
+const { bayLake, lbv, corridor, region } = disney;
+
+const seoTitle = 'The Cleanest Restaurants in Central Florida Are Inside Disney';
+const seoDescription =
+  `The two cities that make up Walt Disney World — Bay Lake and Lake Buena Vista — grade ` +
+  `${corridor.pctA}% Grade A, versus ${region.pctA}% across Central Florida. Every graded restaurant ` +
+  `in Bay Lake is an A.`;
+
+const webpageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'The Disney Paradox — Central Florida',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': `${siteUrl}#organization` },
+};
+const others = REPORTS.filter((r) => r.url !== '/disney-cleanest/');
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script type="application/ld+json" slot="jsonld" set:html={JSON.stringify(webpageSchema)} />
+
+  <main>
+    <p class="eyebrow">Data report · {SOURCE} · {AS_OF}</p>
+    <h1>The cleanest restaurants in Central Florida are inside&nbsp;Disney.</h1>
+    <p class="lead">
+      It sounds like a complaint waiting to happen: captive-audience theme-park food. The inspection
+      records say the opposite. The two cities that make up Walt Disney World — Bay Lake and Lake Buena
+      Vista — grade {corridor.pctA}% Grade A. The rest of Central Florida: {region.pctA}%. And in Bay
+      Lake, every single graded restaurant is an A.
+    </p>
+
+    <div class="dp-compare">
+      <div class="dp-col dp-win">
+        <span class="dp-pct">{corridor.pctA}%</span>
+        <span class="dp-lbl">Grade A inside Walt Disney World</span>
+        <span class="dp-sub">{corridor.n} restaurants · Bay Lake + Lake Buena Vista</span>
+      </div>
+      <div class="dp-col">
+        <span class="dp-pct dp-muted">{region.pctA}%</span>
+        <span class="dp-lbl">Grade A across Central Florida</span>
+        <span class="dp-sub">{region.n.toLocaleString('en-US')} restaurants</span>
+      </div>
+    </div>
+
+    <h2>Bay Lake: a perfect wall</h2>
+    <p class="dp-note">
+      All {bayLake.n} graded restaurants in Bay Lake — Disney&rsquo;s resort core — hold an A, at an
+      average score of {bayLake.avg}/100. Not one B, C, D, or F.
+    </p>
+    <ul class="dp-wall">
+      {bayLake.items.map((r) => (
+        <li><a class="dp-tile" href={`${r.url}/`} title={`${r.name} — A, ${r.score}/100`}>
+          <span class="dp-tile-g">A</span>
+          <span class="dp-tile-s">{r.score}</span>
+          <span class="dp-tile-n">{r.name}</span>
+        </a></li>
+      ))}
+    </ul>
+
+    <h2>The corridor, broken down</h2>
+    <dl class="dp-facts">
+      <div><dt>Bay Lake</dt><dd><b>{bayLake.pctA}% A</b> · {bayLake.n} graded · avg {bayLake.avg}</dd></div>
+      <div><dt>Lake Buena Vista</dt><dd><b>{lbv.pctA}% A</b> · {lbv.n} graded · avg {lbv.avg}</dd></div>
+      <div><dt>Central Florida overall</dt><dd><b>{region.pctA}% A</b> · {region.n.toLocaleString('en-US')} graded · avg {region.avg}</dd></div>
+    </dl>
+
+    <section class="lf-more">
+      <h2>More data reports</h2>
+      <ul class="reportcards">
+        {others.map((p) => (
+          <li><a class="reportcard" href={p.url}>
+            <span class="rc-kicker">{p.kicker}</span>
+            <span class="rc-title">{p.title}</span>
+            <span class="rc-blurb">{p.blurb}</span>
+          </a></li>
+        ))}
+      </ul>
+    </section>
+
+    <p class="source-note">
+      Source: {SOURCE}, as of {AS_OF}. &ldquo;Inside Walt Disney World&rdquo; means the incorporated
+      cities of Bay Lake and Lake Buena Vista, Florida, which together form the resort&rsquo;s footprint;
+      it does not imply every venue is Disney-operated. Grades are calculated by us from each
+      restaurant&rsquo;s most recent inspection. <a href="/methodology/">Methodology →</a>
+    </p>
+  </main>
+
+  <style>
+    main > h1 { max-width: 18ch; }
+    .dp-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin: 2rem 0 0; }
+    .dp-col { border: 1px solid var(--line-strong); border-radius: 2px; padding: 1.6rem 1.4rem; display: flex; flex-direction: column; gap: 0.35rem; }
+    .dp-win { background: #e9f3ec; border-color: var(--g-a); }
+    .dp-pct { font-family: var(--display); font-weight: 800; font-size: clamp(2.8rem, 8vw, 5rem); line-height: 0.9; letter-spacing: -0.03em; color: var(--g-a); }
+    .dp-pct.dp-muted { color: var(--ink-faint); }
+    .dp-lbl { font-family: var(--body); font-weight: 600; font-size: 0.95rem; color: var(--ink); }
+    .dp-sub { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mute); }
+    .dp-note { max-width: 60ch; color: var(--ink-2); }
+
+    .dp-wall { list-style: none; padding: 0; margin: 1.2rem 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 4px; }
+    .dp-tile { display: flex; flex-direction: column; gap: 2px; background: var(--ga-solid); color: #fff; text-decoration: none; padding: 0.5rem 0.55rem 0.55rem; border-radius: 2px; min-height: 70px; }
+    .dp-tile:hover { filter: brightness(1.06); }
+    .dp-tile-g { font-family: var(--display); font-weight: 800; font-size: 1.1rem; line-height: 1; }
+    .dp-tile-s { font-family: var(--mono); font-size: 0.62rem; opacity: 0.85; }
+    .dp-tile-n { margin-top: auto; font-family: var(--mono); font-size: 0.56rem; line-height: 1.25; letter-spacing: 0.02em; text-transform: uppercase; opacity: 0.95; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+
+    .dp-facts { margin: 1.2rem 0 0; display: grid; gap: 0.4rem; }
+    .dp-facts div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0; border-top: 1px solid var(--hairline); }
+    .dp-facts dt { font-family: var(--display); font-weight: 700; color: var(--ink); }
+    .dp-facts dd { margin: 0; font-family: var(--mono); font-size: 0.82rem; color: var(--ink-2); }
+    .dp-facts dd b { color: var(--g-a); }
+    .lf-more { margin-top: 2.6rem; }
+
+    @media (max-width: 560px) { .dp-compare { grid-template-columns: 1fr; } }
+  </style>
+</Base>

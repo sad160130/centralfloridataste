@@ -1,0 +1,116 @@
+---
+import Base from '../layouts/Base.astro';
+import { cuisineRanking, REPORTS, SOURCE, AS_OF } from '../lib/assets.js';
+
+const siteUrl = new URL('/', Astro.site).href;
+const pageUrl = new URL('/cuisines-ranked/', Astro.site).href;
+
+const cleanest = cuisineRanking[0];
+const riskiest = cuisineRanking[cuisineRanking.length - 1];
+const japanese = cuisineRanking.find((c) => c.cuisine === 'Japanese');
+const mexican = cuisineRanking.find((c) => c.cuisine === 'Mexican');
+const band = (avg) => (avg >= 90 ? 'A' : avg >= 80 ? 'B' : avg >= 70 ? 'C' : 'F');
+
+const seoTitle = 'Central Florida Cuisines Ranked by Restaurant Health Grade';
+const seoDescription =
+  `Which cuisines grade cleanest? ${cleanest.cuisine} leads (${cleanest.avg} avg), ${riskiest.cuisine} ` +
+  `trails (${riskiest.avg}). The full ranking of Central Florida cuisines by DBPR health score.`;
+
+const webpageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Central Florida Cuisines Ranked by Health Grade',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': `${siteUrl}#organization` },
+};
+const others = REPORTS.filter((r) => r.url !== '/cuisines-ranked/');
+const maxAvg = Math.max(...cuisineRanking.map((c) => c.avg));
+const minAvg = Math.min(...cuisineRanking.map((c) => c.avg));
+// scale bars so differences are visible (map [minAvg-2, maxAvg] -> [12%, 100%])
+const barW = (avg) => Math.round(12 + ((avg - (minAvg - 2)) / (maxAvg - (minAvg - 2))) * 88);
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script type="application/ld+json" slot="jsonld" set:html={JSON.stringify(webpageSchema)} />
+
+  <main>
+    <p class="eyebrow">Data report · {SOURCE} · {AS_OF}</p>
+    <h1>Cuisines, ranked by what&rsquo;s in the kitchen</h1>
+    <p class="lead">
+      Pick a cuisine and you think you know what you&rsquo;re getting. The health scores complicate it.
+      {cleanest.cuisine} spots grade cleanest in Central Florida ({cleanest.avg}/100 average, {cleanest.riskPct}%
+      failing). {japanese && mexican && (
+        <> And the freshness halo around sushi? {japanese.cuisine} restaurants average {japanese.avg} — below
+        {' '}{mexican.cuisine}&rsquo;s {mexican.avg}.</>
+      )} Every cuisine with at least 20 graded restaurants, cleanest to riskiest.
+    </p>
+
+    <ol class="cr-list">
+      {cuisineRanking.map((c, i) => (
+        <li class="cr-row">
+          <span class="cr-rank">{i + 1}</span>
+          <span class="cr-name">{c.cuisine}</span>
+          <div class="cr-track" aria-hidden="true">
+            <span class={`cr-bar band-${band(c.avg)}`} style={`width:${barW(c.avg)}%`}>
+              <b>{c.avg}</b>
+            </span>
+          </div>
+          <span class="cr-pcta">{c.pctA}% A</span>
+          <span class={`cr-risk ${c.riskPct === 0 ? 'is-zero' : ''}`}>{c.riskPct}% D/F</span>
+          <span class="cr-n">{c.n}</span>
+        </li>
+      ))}
+    </ol>
+
+    <p class="cr-foot">
+      Average score is the mean of every graded restaurant in that cuisine (minimum 20 to qualify).
+      &ldquo;% D/F&rdquo; is the share carrying a failing or near-failing grade. A clean café and a
+      dicey steakhouse can sit a full letter apart — the kitchen, not the menu, decides the grade.
+    </p>
+
+    <section class="lf-more">
+      <h2>More data reports</h2>
+      <ul class="reportcards">
+        {others.map((p) => (
+          <li><a class="reportcard" href={p.url}>
+            <span class="rc-kicker">{p.kicker}</span>
+            <span class="rc-title">{p.title}</span>
+            <span class="rc-blurb">{p.blurb}</span>
+          </a></li>
+        ))}
+      </ul>
+    </section>
+
+    <p class="source-note">
+      Source: {SOURCE}, as of {AS_OF}. Cuisine labels are third-party; grades are calculated by us from
+      each restaurant&rsquo;s most recent inspection. <a href="/methodology/">Methodology →</a>
+    </p>
+  </main>
+
+  <style>
+    .cr-list { list-style: none; padding: 0; margin: 1.6rem 0 0; display: grid; gap: 0.15rem; }
+    .cr-row { display: grid; grid-template-columns: 1.4rem 6.5rem minmax(120px, 1fr) 3.4rem 3.8rem 2rem; align-items: center; gap: 0.7rem; padding: 0.4rem 0; border-top: 1px solid var(--hairline); }
+    .cr-row:first-child { border-top: 0; }
+    .cr-rank { font-family: var(--mono); font-size: 0.74rem; color: var(--ink-faint); text-align: right; }
+    .cr-name { font-family: var(--display); font-weight: 700; font-size: 0.95rem; color: var(--ink); letter-spacing: -0.01em; }
+    .cr-track { background: var(--hairline); border-radius: 2px; height: 22px; }
+    .cr-bar { display: flex; align-items: center; justify-content: flex-end; height: 100%; border-radius: 2px; padding: 0 0.45rem; min-width: 2rem; }
+    .cr-bar b { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; }
+    .band-A { background: var(--g-a); } .band-A b { color: #fff; }
+    .band-B { background: var(--g-b); } .band-B b { color: #fff; }
+    .band-C { background: var(--g-c); } .band-C b { color: var(--ink); }
+    .band-F { background: var(--g-f); } .band-F b { color: #fff; }
+    .cr-pcta { font-family: var(--mono); font-size: 0.74rem; color: var(--ink); text-align: right; }
+    .cr-risk { font-family: var(--mono); font-size: 0.74rem; color: var(--g-f); text-align: right; }
+    .cr-risk.is-zero { color: var(--g-a); }
+    .cr-n { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-faint); text-align: right; }
+    .cr-foot { max-width: 64ch; margin: 1.8rem 0 0; color: var(--ink-2); }
+    .lf-more { margin-top: 2.6rem; }
+
+    @media (max-width: 600px) {
+      .cr-row { grid-template-columns: 1.2rem 5rem 1fr 3.2rem; }
+      .cr-pcta, .cr-n { display: none; }
+    }
+  </style>
+</Base>

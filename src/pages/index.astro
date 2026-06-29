@@ -5,6 +5,7 @@ import restaurants from '../data/restaurants.json';
 import { counties, districts, phase1 } from '../lib/data.js';
 import { specialPages } from '../lib/manifest.js';
 import { siteHook } from '../lib/prose.js';
+import { REPORTS } from '../lib/assets.js';
 
 const totalTracked = restaurants.length;
 
@@ -155,6 +156,20 @@ const faqSchema = {
           <span class="fc-label"><b>Neighborhoods</b><span>Dining districts</span></span>
         </a></li>
       </ul>
+
+      <section id="reports">
+        <h2>Data stories</h2>
+        <p class="reports-intro">The counterintuitive truths hiding in the inspection data — built to be read, screenshotted, and argued about.</p>
+        <ul class="reportcards">
+          {REPORTS.map((p) => (
+            <li><a class="reportcard" href={p.url}>
+              <span class="rc-kicker">{p.kicker}</span>
+              <span class="rc-title">{p.title}</span>
+              <span class="rc-blurb">{p.blurb}</span>
+            </a></li>
+          ))}
+        </ul>
+      </section>
 
       <section id="counties">
         <h2>Browse by county</h2>

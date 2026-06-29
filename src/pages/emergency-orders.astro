@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+import { emergencyOrders, emergencyByCounty, REPORTS, SOURCE, AS_OF } from '../lib/assets.js';
+import { formatDate } from '../lib/format.js';
+
+const siteUrl = new URL('/', Astro.site).href;
+const pageUrl = new URL('/emergency-orders/', Astro.site).href;
+
+const total = emergencyOrders.length;
+const top = emergencyByCounty[0];
+const maxN = Math.max(...emergencyByCounty.map((c) => c.n));
+
+const seoTitle = 'Central Florida Restaurants With State Emergency Orders';
+const seoDescription =
+  `${total} Central Florida restaurants triggered an emergency order — the strongest action Florida ` +
+  `inspectors take. ${top.n} are in ${top.county} County. The full DBPR-sourced ledger.`;
+
+const webpageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Emergency Orders — Central Florida Restaurants',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': `${siteUrl}#organization` },
+};
+const itemListSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Central Florida restaurants with a state emergency order on record',
+  numberOfItems: emergencyOrders.length,
+  itemListElement: emergencyOrders.map((r, i) => ({
+    '@type': 'ListItem', position: i + 1, url: new URL(`${r.url}/`, Astro.site).href, name: r.name,
+  })),
+};
+const others = REPORTS.filter((r) => r.url !== '/emergency-orders/');
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script type="application/ld+json" slot="jsonld" set:html={JSON.stringify([webpageSchema, itemListSchema])} />
+
+  <main>
+    <p class="eyebrow">Data report · {SOURCE} · {AS_OF}</p>
+    <h1>Emergency orders</h1>
+    <p class="lead">
+      An emergency order is the strongest action a Florida inspector can take — reserved for conditions
+      serious enough to stop operations on the spot. {total} restaurants we track have one on record.
+      {top.n} of them are in {top.county} County alone.
+    </p>
+
+    <h2 class="eo-h2">Where they cluster</h2>
+    <ul class="eo-tally">
+      {emergencyByCounty.map((c) => (
+        <li class="eo-tr">
+          <span class="eo-county">{c.county}</span>
+          <div class="eo-bar-track" aria-hidden="true"><span class="eo-bar" style={`width:${Math.round((c.n / maxN) * 100)}%`}></span></div>
+          <span class="eo-count">{c.n}</span>
+        </li>
+      ))}
+    </ul>
+
+    <h2 class="eo-h2">The ledger</h2>
+    <ol class="eo-ledger">
+      {emergencyOrders.map((r) => (
+        <li class="eo-row">
+          <span class="eo-date">{formatDate(r.emoDate) || r.emoDate}</span>
+          <div class="eo-id">
+            <a class="eo-name" href={`${r.url}/`}>{r.name}</a>
+            <span class="eo-loc">{r.city} · {r.county} County</span>
+          </div>
+          <span class="eo-disp">{r.emoDisposition}</span>
+          <span class={`eo-grade gr-${r.grade}`}>{r.grade}{r.score !== null ? ` · ${r.score}` : ''}</span>
+        </li>
+      ))}
+    </ol>
+
+    <section class="lf-more">
+      <h2>More data reports</h2>
+      <ul class="reportcards">
+        {others.map((p) => (
+          <li><a class="reportcard" href={p.url}>
+            <span class="rc-kicker">{p.kicker}</span>
+            <span class="rc-title">{p.title}</span>
+            <span class="rc-blurb">{p.blurb}</span>
+          </a></li>
+        ))}
+      </ul>
+    </section>
+
+    <p class="source-note">
+      Source: {SOURCE}, as of {AS_OF}. Each entry shows the exact emergency disposition and date recorded
+      by the state; the grade shown is the restaurant&rsquo;s current standing, which may differ from the
+      day of the order. Many of these establishments have since complied and reopened.
+      <a href="/methodology/">Methodology →</a>
+    </p>
+  </main>
+
+  <style>
+    .eo-h2 { margin-top: 2.2rem; }
+    .eo-tally { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.35rem; max-width: 32rem; }
+    .eo-tr { display: grid; grid-template-columns: 6rem 1fr 1.6rem; align-items: center; gap: 0.7rem; }
+    .eo-county { font-family: var(--mono); font-size: 0.74rem; color: var(--ink); }
+    .eo-bar-track { background: var(--hairline); border-radius: 2px; height: 14px; }
+    .eo-bar { display: block; height: 100%; background: var(--g-f); border-radius: 2px; }
+    .eo-count { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; color: var(--g-f); text-align: right; }
+
+    .eo-ledger { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.1rem; }
+    .eo-row { display: grid; grid-template-columns: 7.5rem minmax(0, 1.3fr) minmax(0, 1.4fr) auto; align-items: center; gap: 0.9rem; padding: 0.6rem 0; border-top: 1px solid var(--hairline); border-left: 3px solid var(--g-f); padding-left: 0.7rem; }
+    .eo-row:first-child { border-top: 0; }
+    .eo-date { font-family: var(--mono); font-size: 0.7rem; color: var(--ink-faint); white-space: nowrap; }
+    .eo-id { min-width: 0; display: flex; flex-direction: column; }
+    .eo-name { font-family: var(--display); font-weight: 700; font-size: 0.94rem; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .eo-name:hover { color: var(--citrus-ink); }
+    .eo-loc { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-faint); }
+    .eo-disp { font-family: var(--mono); font-size: 0.7rem; color: var(--g-f); line-height: 1.35; }
+    .eo-grade { font-family: var(--display); font-weight: 800; font-size: 0.78rem; padding: 0.15rem 0.45rem; border-radius: 2px; color: #fff; white-space: nowrap; justify-self: end; }
+    .gr-A { background: var(--ga-solid); } .gr-B { background: var(--gb-solid); }
+    .gr-C { background: var(--gc-solid); color: var(--ink); } .gr-D { background: var(--gd-solid); color: var(--ink); } .gr-F { background: var(--gf-solid); }
+    .gr-NR { background: var(--mute); }
+    .lf-more { margin-top: 2.6rem; }
+
+    @media (max-width: 680px) {
+      .eo-row { grid-template-columns: 1fr auto; row-gap: 0.2rem; }
+      .eo-date { grid-column: 1 / -1; order: -1; }
+      .eo-disp { grid-column: 1 / -1; }
+    }
+  </style>
+</Base>

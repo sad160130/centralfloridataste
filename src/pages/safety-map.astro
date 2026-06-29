@@ -1,0 +1,141 @@
+---
+import Base from '../layouts/Base.astro';
+import { countyMatrix, districtMatrix, regionStats, REPORTS, SOURCE, AS_OF } from '../lib/assets.js';
+
+const siteUrl = new URL('/', Astro.site).href;
+const pageUrl = new URL('/safety-map/', Astro.site).href;
+const GRADES = ['A', 'B', 'C', 'D', 'F'];
+
+const cleanest = countyMatrix[0];
+const riskiest = countyMatrix[countyMatrix.length - 1];
+
+const seoTitle = 'Central Florida Restaurant Safety Map: Health Grades by County';
+const seoDescription =
+  `How clean is your county's dinner? Grade-A rates across all ${countyMatrix.length} Central Florida ` +
+  `counties — from ${cleanest.county} (${cleanest.pctA}% A) to ${riskiest.county} (${riskiest.pctA}% A).`;
+
+const webpageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Central Florida Restaurant Safety Map',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': `${siteUrl}#organization` },
+};
+const datasetSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Dataset',
+  name: 'Central Florida restaurant health-grade distribution by county',
+  description: seoDescription,
+  url: pageUrl,
+  creator: { '@id': `${siteUrl}#organization` },
+  isAccessibleForFree: true,
+  spatialCoverage: 'Central Florida',
+  variableMeasured: ['Grade A rate', 'Average health score', 'Restaurants graded'],
+};
+const others = REPORTS.filter((r) => r.url !== '/safety-map/');
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script type="application/ld+json" slot="jsonld" set:html={JSON.stringify([webpageSchema, datasetSchema])} />
+
+  <main>
+    <p class="eyebrow">Data report · {SOURCE} · {AS_OF}</p>
+    <h1>The Central Florida Restaurant Safety Map</h1>
+    <p class="lead">
+      Every restaurant we grade, mapped to its county and sorted cleanest to riskiest. Across all
+      {regionStats.n.toLocaleString('en-US')} of them, {regionStats.pctA}% hold an A. But the spread is
+      real: {cleanest.county} County grades {cleanest.pctA}% A, while {riskiest.county} County manages
+      {riskiest.pctA}%.
+    </p>
+
+    <h2 class="sm-h2">By county</h2>
+    <ul class="cm-grid">
+      {countyMatrix.map((c) => (
+        <li class="cm-tile">
+          <div class="cm-head">
+            <a class="cm-name" href={`/${c.slug}-county/`}>{c.county} County</a>
+            <span class="cm-n">{c.n} graded</span>
+          </div>
+          <div class="cm-stat">
+            <b>{c.pctA}%</b><span>Grade A</span>
+            <i>avg {c.avg}</i>
+          </div>
+          <div class="cm-bar" role="img" aria-label={`${c.county} County: ${c.A} A, ${c.B} B, ${c.C} C, ${c.D} D, ${c.F} F`}>
+            {GRADES.map((g) => c[g] > 0 && <span class={`cm-seg g-${g}`} style={`flex:${c[g]}`}></span>)}
+          </div>
+          <div class="cm-legend">
+            {GRADES.map((g) => <span><i class={`sw g-${g}`}></i>{g} {c[g]}</span>)}
+          </div>
+        </li>
+      ))}
+    </ul>
+
+    <h2 class="sm-h2">By dining district</h2>
+    <ul class="dm-list">
+      {districtMatrix.map((d) => (
+        <li class="dm-row">
+          <a class="dm-name" href={`/neighborhood/${d.slug}/`}>{d.name}</a>
+          <span class="dm-pct">{d.pctA}% A</span>
+          <div class="cm-bar dm-bar" aria-hidden="true">
+            {GRADES.map((g) => d[g] > 0 && <span class={`cm-seg g-${g}`} style={`flex:${d[g]}`}></span>)}
+          </div>
+          <span class="dm-n">{d.n}</span>
+        </li>
+      ))}
+    </ul>
+
+    <section class="lf-more">
+      <h2>More data reports</h2>
+      <ul class="reportcards">
+        {others.map((p) => (
+          <li><a class="reportcard" href={p.url}>
+            <span class="rc-kicker">{p.kicker}</span>
+            <span class="rc-title">{p.title}</span>
+            <span class="rc-blurb">{p.blurb}</span>
+          </a></li>
+        ))}
+      </ul>
+    </section>
+
+    <p class="source-note">
+      Source: {SOURCE}, as of {AS_OF}. &ldquo;Grade A&rdquo; is calculated by us from each restaurant&rsquo;s
+      most recent inspection — Florida does not issue official letter grades. Bars are sized by the
+      number of restaurants at each grade. <a href="/methodology/">Methodology →</a>
+    </p>
+  </main>
+
+  <style>
+    .sm-h2 { margin-top: 2.4rem; }
+    .cm-grid { list-style: none; padding: 0; margin: 1.2rem 0 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; }
+    .cm-tile { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px; padding: 0.9rem 0.95rem 0.8rem; display: flex; flex-direction: column; gap: 0.55rem; }
+    .cm-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem; }
+    .cm-name { font-family: var(--display); font-weight: 700; font-size: 0.98rem; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+    .cm-name:hover { color: var(--citrus-ink); }
+    .cm-n { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
+    .cm-stat { display: flex; align-items: baseline; gap: 0.4rem; }
+    .cm-stat b { font-family: var(--display); font-weight: 800; font-size: 1.9rem; line-height: 1; color: var(--ink); letter-spacing: -0.02em; }
+    .cm-stat span { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); }
+    .cm-stat i { margin-left: auto; font-family: var(--mono); font-style: normal; font-size: 0.7rem; color: var(--ink-faint); }
+    .cm-bar { display: flex; height: 12px; gap: 1px; border-radius: 2px; overflow: hidden; }
+    .cm-seg { display: block; }
+    .g-A { background: var(--g-a); } .g-B { background: var(--g-b); } .g-C { background: var(--g-c); }
+    .g-D { background: var(--g-d); } .g-F { background: var(--g-f); }
+    .cm-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 0.7rem; font-family: var(--mono); font-size: 0.62rem; color: var(--mute); }
+    .cm-legend span { display: inline-flex; align-items: center; gap: 0.25rem; }
+    .sw { width: 8px; height: 8px; display: inline-block; border-radius: 1px; }
+
+    .dm-list { list-style: none; padding: 0; margin: 1.2rem 0 0; display: grid; gap: 0.1rem; }
+    .dm-row { display: grid; grid-template-columns: minmax(0, 1.4fr) auto minmax(120px, 2fr) auto; align-items: center; gap: 0.9rem; padding: 0.5rem 0; border-top: 1px solid var(--hairline); }
+    .dm-row:first-child { border-top: 0; }
+    .dm-name { font-family: var(--display); font-weight: 700; font-size: 0.92rem; color: var(--ink); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dm-name:hover { color: var(--citrus-ink); }
+    .dm-pct { font-family: var(--mono); font-size: 0.74rem; font-weight: 600; color: var(--ink); white-space: nowrap; }
+    .dm-bar { height: 10px; }
+    .dm-n { font-family: var(--mono); font-size: 0.7rem; color: var(--ink-faint); text-align: right; }
+    .lf-more { margin-top: 2.6rem; }
+
+    @media (max-width: 900px) { .cm-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .cm-grid { grid-template-columns: 1fr; } .dm-row { grid-template-columns: 1fr auto; } .dm-bar { display: none; } }
+  </style>
+</Base>

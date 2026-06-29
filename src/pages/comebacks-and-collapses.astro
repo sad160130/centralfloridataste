@@ -1,0 +1,135 @@
+---
+import Base from '../layouts/Base.astro';
+import GradeBadge from '../components/GradeBadge.astro';
+import { comebacks, collapses, REPORTS, SOURCE, AS_OF } from '../lib/assets.js';
+import { formatMonthYear } from '../lib/format.js';
+
+const siteUrl = new URL('/', Astro.site).href;
+const pageUrl = new URL('/comebacks-and-collapses/', Astro.site).href;
+
+const seoTitle = 'Restaurant Health Comebacks & Collapses in Central Florida';
+const seoDescription =
+  'The biggest restaurant health turnarounds and freefalls in Central Florida — tracked inspection ' +
+  'by inspection from Florida DBPR records, with the violations behind each trajectory.';
+
+const webpageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Comebacks & Collapses — Central Florida',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': `${siteUrl}#organization` },
+};
+const others = REPORTS.filter((r) => r.url !== '/comebacks-and-collapses/');
+
+const band = (score) => (score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F');
+const sc = (w) => Math.max(0, 100 - w); // the site's score formula, per inspection
+const vdesc = (v) => {
+  const p = [v.hp ? `${v.hp} high-priority` : null, v.int ? `${v.int} intermediate` : null, v.basic ? `${v.basic} basic` : null].filter(Boolean);
+  return p.length ? p.join(', ') : 'a clean inspection';
+};
+const Trajectory = { comebacks, collapses };
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script type="application/ld+json" slot="jsonld" set:html={JSON.stringify(webpageSchema)} />
+
+  <main>
+    <p class="eyebrow">Data report · {SOURCE} · {AS_OF}</p>
+    <h1>Comebacks &amp; collapses</h1>
+    <p class="lead">
+      A single grade is a snapshot. Stack a restaurant&rsquo;s inspections in order and you get the
+      story — the kitchens that clawed their way up, and the ones that fell off a cliff. Each bar is one
+      inspection, taller meaning cleaner, scored from the violations the state recorded that day.
+    </p>
+
+    <div class="cc-cols">
+      <section class="cc-col">
+        <h2 class="cc-h cc-up">↑ Biggest comebacks</h2>
+        {comebacks.map((t) => (
+          <article class="cc-card">
+            <header class="cc-head">
+              <GradeBadge grade={t.grade} score={t.score} size="sm" />
+              <div class="cc-id">
+                <a class="cc-name" href={`${t.url}/`}>{t.name}</a>
+                <span class="cc-city">{t.city} · {t.visits} inspections</span>
+              </div>
+            </header>
+            <div class="cc-spark" aria-hidden="true">
+              {t.series.map((s) => (
+                <span class={`cc-bar g-${band(sc(s.w))}`} style={`height:${Math.max(6, sc(s.w))}%`}></span>
+              ))}
+            </div>
+            <p class="cc-cap">
+              {formatMonthYear(t.first.date)}: {vdesc(t.first)} → {formatMonthYear(t.last.date)}: {vdesc(t.last)}.
+            </p>
+          </article>
+        ))}
+      </section>
+
+      <section class="cc-col">
+        <h2 class="cc-h cc-down">↓ Biggest collapses</h2>
+        {collapses.map((t) => (
+          <article class="cc-card">
+            <header class="cc-head">
+              <GradeBadge grade={t.grade} score={t.score} size="sm" />
+              <div class="cc-id">
+                <a class="cc-name" href={`${t.url}/`}>{t.name}</a>
+                <span class="cc-city">{t.city} · {t.visits} inspections</span>
+              </div>
+            </header>
+            <div class="cc-spark" aria-hidden="true">
+              {t.series.map((s) => (
+                <span class={`cc-bar g-${band(sc(s.w))}`} style={`height:${Math.max(6, sc(s.w))}%`}></span>
+              ))}
+            </div>
+            <p class="cc-cap">
+              {formatMonthYear(t.first.date)}: {vdesc(t.first)} → {formatMonthYear(t.last.date)}: {vdesc(t.last)}.
+            </p>
+          </article>
+        ))}
+      </section>
+    </div>
+
+    <section class="lf-more">
+      <h2>More data reports</h2>
+      <ul class="reportcards">
+        {others.map((p) => (
+          <li><a class="reportcard" href={p.url}>
+            <span class="rc-kicker">{p.kicker}</span>
+            <span class="rc-title">{p.title}</span>
+            <span class="rc-blurb">{p.blurb}</span>
+          </a></li>
+        ))}
+      </ul>
+    </section>
+
+    <p class="source-note">
+      Source: {SOURCE}, as of {AS_OF}. Each bar applies our scoring formula (−8 per high-priority, −3 per
+      intermediate, −1 per basic violation) to the violations recorded at that inspection; the current
+      grade reflects the most recent visit. Only restaurants with two or more inspections on record are
+      shown. <a href="/methodology/">Methodology →</a>
+    </p>
+  </main>
+
+  <style>
+    .cc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin: 2rem 0 0; }
+    .cc-col { min-width: 0; }
+    .cc-h { margin: 0 0 0.8rem; font-size: 1.05rem; }
+    .cc-up { color: var(--g-a); } .cc-down { color: var(--g-f); }
+    .cc-card { border: 1px solid var(--line); border-radius: 2px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; background: var(--surface); }
+    .cc-head { display: flex; align-items: center; gap: 0.6rem; }
+    .cc-id { min-width: 0; display: flex; flex-direction: column; }
+    .cc-name { font-family: var(--display); font-weight: 700; font-size: 0.95rem; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cc-name:hover { color: var(--citrus-ink); }
+    .cc-city { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-faint); }
+    .cc-spark { display: flex; align-items: flex-end; gap: 3px; height: 52px; margin: 0.7rem 0 0; padding: 0 0.1rem; }
+    .cc-bar { flex: 1; min-width: 4px; border-radius: 1px 1px 0 0; }
+    .g-A { background: var(--g-a); } .g-B { background: var(--g-b); } .g-C { background: var(--g-c); }
+    .g-D { background: var(--g-d); } .g-F { background: var(--g-f); }
+    .cc-cap { margin: 0.55rem 0 0; font-family: var(--mono); font-size: 0.66rem; line-height: 1.45; letter-spacing: 0.02em; color: var(--ink-2); }
+    .lf-more { margin-top: 2.6rem; }
+
+    @media (max-width: 640px) { .cc-cols { grid-template-columns: 1fr; gap: 1.8rem; } }
+  </style>
+</Base>
