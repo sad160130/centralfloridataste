@@ -1,8 +1,11 @@
 ---
 import { titleCase, formatMonthYear } from '../lib/format.js';
+import { photoInfo } from '../lib/photos.js';
 import GradeBadge from './GradeBadge.astro';
 
 const { r, showViolations = false } = Astro.props;
+// Real storefront photo when we have one (lazy-loaded); else the monogram tile.
+const photo = photoInfo(r.license_key);
 const cuisine = r.cuisine ? titleCase(r.cuisine) : null;
 const hasRating =
   Number.isFinite(r.rating) && Number.isFinite(r.reviews_count) && r.reviews_count > 0;
@@ -37,9 +40,11 @@ const violationParts = [
 ---
 <li>
   <a class="card" data-grade={gradeKey} href={`${r.url}/`}>
-    <div class="card__head">
+    <div class={`card__head${photo ? ' has-photo' : ''}`}>
+      {photo
+        ? <img class="card__photo" src={photo.src} alt="" loading="lazy" decoding="async" width="800" height="500" />
+        : <span class="card__ghost" aria-hidden="true">{ghost}</span>}
       <GradeBadge grade={r.health_grade} score={r.health_score} size="md" />
-      <span class="card__ghost" aria-hidden="true">{ghost}</span>
       {r.hidden_gem && (
         <span class="card__gem"><span class="star" aria-hidden="true">★</span> Hidden gem</span>
       )}

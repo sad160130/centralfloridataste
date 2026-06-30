@@ -3,3 +3,11 @@
 __pycache__/
 node_modules
 .astro/
+
+# local paid-API image pilots (not for commit)
+pilot-places-photos/
+pilot-streetview/
+
+# restaurant photos are served from Vercel Blob; local copies are a byte cache only
+public/restaurant-photos/
+dist/restaurant-photos/

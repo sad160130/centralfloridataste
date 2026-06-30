@@ -7,6 +7,7 @@ import restaurants from '../../../data/restaurants.json';
 import { cityHubSlugs, districtHubSlugs } from '../../../lib/data.js';
 import { titleCase, formatDate, listJoin } from '../../../lib/format.js';
 import { listingProse } from '../../../lib/prose.js';
+import { photoInfo } from '../../../lib/photos.js';
 
 // One static page per restaurant — only published === true rows are emitted.
 export function getStaticPaths() {
@@ -19,6 +20,10 @@ export function getStaticPaths() {
 }
 
 const { r } = Astro.props;
+
+// Storefront photo (Places) when available; attribution is mandatory under
+// Google's terms and rendered in the figcaption below the image.
+const photo = photoInfo(r.license_key);
 
 /* ---------- derived display values ---------- */
 const cityDisplay = titleCase(r.city);
@@ -179,6 +184,13 @@ const breadcrumbSchema = {
     </nav>
 
     <article>
+      {photo && (
+        <figure class="detail-photo">
+          <img src={photo.src} alt={`Photo of ${r.name}`} loading="eager" fetchpriority="high" decoding="async" width="800" height="450" />
+          <figcaption set:html={`Photo: ${photo.attribution.length ? photo.attribution.join(' · ') : 'via Google'}`} />
+        </figure>
+      )}
+
       <div class="detail-head">
         <GradeBadge grade={r.health_grade} score={r.health_score} size="lg" />
         <h1>
@@ -364,6 +376,11 @@ const breadcrumbSchema = {
   </main>
 
   <style>
+    .detail-photo { margin: 0 0 1.3rem; }
+    .detail-photo img { width: 100%; height: auto; aspect-ratio: 16 / 9; max-height: 380px; object-fit: cover; display: block; border: 1px solid var(--line-strong); border-radius: 2px; background: var(--line); }
+    .detail-photo figcaption { margin-top: 0.35rem; font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.04em; color: var(--mute); }
+    .detail-photo figcaption a { color: var(--mute); text-decoration: underline; }
+    .detail-photo figcaption a:hover { color: var(--citrus-ink); }
     .detail-head { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; margin: 0 0 0.6rem; }
     .detail-head h1 { margin: 0; }
     .detail-head h1 .badge { margin-left: 0.5rem; }
