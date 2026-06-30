@@ -72,20 +72,34 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
 
     <slot name="jsonld" />
 
-    <!-- Fonts: Bricolage Grotesque (display) + Hanken Grotesk (body) + IBM Plex Mono (data) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Self-hosted fonts (latin woff2): Bricolage Grotesque (display) + Hanken
+         Grotesk (body) + IBM Plex Mono (data). @font-face (font-display: swap) is
+         in the inline global CSS below. Preload only the weights that paint above
+         the fold: the hero display, the body, and the mono used in the eyebrow. -->
+    <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/ibm-plex-mono-600-latin.woff2" as="font" type="font/woff2" crossorigin />
 
     <style is:global>
+      /* ---------- self-hosted fonts (latin subset, font-display: swap) ----------
+         swap = text paints immediately in the metric-matched fallback and swaps to
+         the web font when it loads, so paint never waits on the network. */
+      @font-face { font-family: 'Bricolage Grotesque'; font-style: normal; font-weight: 200 800; font-display: swap; src: url('/fonts/bricolage-grotesque-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/ibm-plex-mono-400-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/ibm-plex-mono-500-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/ibm-plex-mono-600-latin.woff2') format('woff2'); }
+      /* Metric-matched fallbacks (overrides computed from the real font metrics) so
+         the swap from system fallback → web font causes ~no layout shift. */
+      @font-face { font-family: 'Bricolage Fallback'; src: local('Arial'), local('Helvetica Neue'), local('Roboto'); size-adjust: 101.82%; ascent-override: 91.34%; descent-override: 26.52%; line-gap-override: 0%; }
+      @font-face { font-family: 'Hanken Fallback'; src: local('Arial'), local('Helvetica Neue'), local('Roboto'); size-adjust: 95.07%; ascent-override: 105.18%; descent-override: 31.87%; line-gap-override: 0%; }
+      @font-face { font-family: 'Plex Mono Fallback'; src: local('Courier New'), local('Menlo'), local('DejaVu Sans Mono'); ascent-override: 102.5%; descent-override: 27.5%; line-gap-override: 0%; }
+
       :root {
         color-scheme: light;
-        --display: 'Bricolage Grotesque', system-ui, sans-serif;
-        --body: 'Hanken Grotesk', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        --display: 'Bricolage Grotesque', 'Bricolage Fallback', system-ui, sans-serif;
+        --body: 'Hanken Grotesk', 'Hanken Fallback', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        --mono: 'IBM Plex Mono', 'Plex Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
 
         --ground: #fcfbf8;
         --surface: #ffffff;
@@ -130,9 +144,9 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
         --tangerine:      #f26b1f;   /* = --citrus */
         --tangerine-text: #c44d0e;   /* = --citrus-ink (AA on ground) */
 
-        --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
-        --font-body:    'Hanken Grotesk', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        --font-mono:    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        --font-display: 'Bricolage Grotesque', 'Bricolage Fallback', system-ui, sans-serif;
+        --font-body:    'Hanken Grotesk', 'Hanken Fallback', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        --font-mono:    'IBM Plex Mono', 'Plex Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
 
         /* spacing scale (4px base) */
         --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s6: 24px;

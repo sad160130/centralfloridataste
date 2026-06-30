@@ -7,4 +7,7 @@ export default defineConfig({
   site: 'https://centralfloridataste.org',
   output: 'static',
   integrations: [sitemap()],
+  // Inline CSS into each page's <head> so the global stylesheet never blocks
+  // first paint with a separate render-blocking request (performance-only).
+  build: { inlineStylesheets: 'always' },
 });
