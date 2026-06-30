@@ -8,6 +8,7 @@ import { cityHubSlugs, districtHubSlugs } from '../../../lib/data.js';
 import { titleCase, formatDate, listJoin } from '../../../lib/format.js';
 import { listingProse } from '../../../lib/prose.js';
 import { photoInfo } from '../../../lib/photos.js';
+import { reviewInfo } from '../../../lib/reviews.js';
 
 // One static page per restaurant — only published === true rows are emitted.
 export function getStaticPaths() {
@@ -24,6 +25,10 @@ const { r } = Astro.props;
 // Storefront photo (Places) when available; attribution is mandatory under
 // Google's terms and rendered in the figcaption below the image.
 const photo = photoInfo(r.license_key);
+
+// Scraped Google reviews (text/stars/date only — no reviewer PII in the source).
+// null when this restaurant has none, so the "What diners say" section is omitted.
+const reviews = reviewInfo(r.license_key);
 
 /* ---------- derived display values ---------- */
 const cityDisplay = titleCase(r.city);
@@ -318,6 +323,30 @@ const breadcrumbSchema = {
         </dl>
       </section>
 
+      {reviews && (
+        <section class="diner-reviews" aria-labelledby="diner-reviews-h">
+          <div class="dr-head">
+            <h2 id="diner-reviews-h">What diners say</h2>
+            <span class="dr-source">Reviews via Google</span>
+          </div>
+          <ul class="dr-list">
+            {reviews.items.map((rv) => (
+              <li class="dr-card">
+                <div class="dr-meta">
+                  {rv.stars != null && (
+                    <span class="dr-stars" aria-label={`Rated ${rv.stars} out of 5 stars`}>
+                      <span aria-hidden="true">{'★'.repeat(rv.stars)}{'☆'.repeat(5 - rv.stars)}</span>
+                    </span>
+                  )}
+                  {rv.date && <span class="dr-date">{formatDate(rv.date) || rv.date}</span>}
+                </div>
+                <p class="dr-text">{rv.excerpt}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {hours.length > 0 && (
         <section>
           <h2>Opening hours</h2>
@@ -418,5 +447,16 @@ const breadcrumbSchema = {
     ul.viol-list li { margin: 0.18rem 0; }
     ul.viol-list li::marker { color: var(--mute); }
     .viol-none { font-family: var(--mono); font-size: 0.82rem; color: var(--g-a); margin: 0.3rem 0 0; }
+
+    /* what diners say — squared sentiment cards (Google reviews, no PII) */
+    .dr-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem 1rem; flex-wrap: wrap; }
+    .dr-head h2 { margin: 0; }
+    .dr-source { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mute); white-space: nowrap; }
+    ul.dr-list { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.9rem; }
+    .dr-card { padding: 0.95rem 1.1rem; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--citrus); border-radius: 2px; }
+    .dr-meta { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+    .dr-stars { font-family: var(--mono); font-size: 0.95rem; letter-spacing: 0.14em; color: var(--citrus); line-height: 1; }
+    .dr-date { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
+    .dr-text { margin: 0.55rem 0 0; color: var(--ink-2); font-size: 0.93rem; line-height: 1.55; }
   </style>
 </Base>
