@@ -92,22 +92,41 @@ const prose = listingProse(r, {
   hasSafer: showNearby,
 });
 
-/* ---------- SEO title + description ---------- */
-// Keep titles unique: same-name chains in the same city would otherwise collide,
-// so disambiguate those with the street address (title metadata only).
-const titleBaseOf = (x) =>
-  (`${x.name} — ${titleCase(x.city)}, FL` + (x.health_grade ? ` (Grade ${x.health_grade})` : '')).slice(0, 60);
+/* ---------- SEO title (metadata only; H1, URLs, JSON-LD unchanged) ----------
+   Format: "{Name}, {City}, Florida" (full state word beats "FL" for local
+   search; DBPR-stored ALL-CAPS names are title-cased for the title only).
+   A "— Grade X Health Score" hook is appended only when it keeps the title
+   under ~60 chars, and is skipped for NR (not rated). Same-name-in-city
+   collisions are broken with the street address so no two pages share a
+   title; uniqueness wins over the soft length cap (no mid-word truncation). */
+const TITLE_MAX = 60;
+// Title-case for display, then repair the possessive "'S" that generic
+// title-casing produces (CARRABBA'S -> Carrabba's, not Carrabba'S).
+const nameTitle = (s) => titleCase(s).replace(/(['’])S\b/g, '$1s');
+const titleBaseOf = (x) => `${nameTitle(x.name)}, ${titleCase(x.city)}, Florida`;
+
+// Count base-title collisions across the published set (identical to phase 1).
 const titleCounts = new Map();
 for (const x of restaurants) {
-  if (x.phase !== 1) continue;
-  const t = titleBaseOf(x);
-  titleCounts.set(t, (titleCounts.get(t) || 0) + 1);
+  if (x.published !== true) continue;
+  const b = titleBaseOf(x);
+  titleCounts.set(b, (titleCounts.get(b) || 0) + 1);
 }
+
 const baseTitle = titleBaseOf(r);
-const seoTitle =
-  titleCounts.get(baseTitle) > 1 && r.address
-    ? `${r.name}, ${r.address} — ${cityDisplay}, FL`.slice(0, 60)
-    : baseTitle;
+const gradeSuffix =
+  r.health_grade && r.health_grade !== 'NR' ? ` — Grade ${r.health_grade} Health Score` : '';
+let seoTitle;
+if (titleCounts.get(baseTitle) > 1 && r.address) {
+  // Disambiguate a shared name+city with the street address (no grade suffix).
+  seoTitle = `${nameTitle(r.name)}, ${titleCase(r.address)}, ${cityDisplay}, Florida`;
+} else if (gradeSuffix && baseTitle.length + gradeSuffix.length <= TITLE_MAX) {
+  seoTitle = baseTitle + gradeSuffix;
+} else {
+  seoTitle = baseTitle;
+}
+
+/* ---------- SEO description (unchanged) ---------- */
 
 const seoDescription = [
   `${r.name} in ${cityDisplay}, FL.`,
