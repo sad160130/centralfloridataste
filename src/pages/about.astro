@@ -3,13 +3,58 @@ import Base from '../layouts/Base.astro';
 import { phase1 } from '../lib/data.js';
 import { siteStats } from '../lib/prose.js';
 
+/* Every number on this page is derived from the published data layer at build
+   time — nothing here is hardcoded, so the page can't go stale. */
 const s = siteStats(phase1);
+const gems = phase1.filter((r) => r.hidden_gem).length;
+const num = (n) => n.toLocaleString('en-US');
+
+const CONTACT = 'rohan@centralfloridataste.org';
+
+const stats = [
+  { value: num(s.n), label: 'Restaurants graded' },
+  { value: num(s.aCount), label: 'Currently grade A' },
+  { value: num(gems), label: 'Hidden gems surfaced' },
+  { value: num(s.counties), label: 'Counties covered' },
+];
+
+const differentiators = [
+  {
+    k: 'Real records, not opinions',
+    v: 'Every grade is built from Florida DBPR inspection reports — the actual violations a state inspector wrote down. Not vibes, not a star average, not who bought an ad.',
+  },
+  {
+    k: 'Grades we calculate, and a method we publish',
+    v: 'Florida issues no official letter grades. Every grade on this site is calculated by us, from public records, using one consistent formula that anyone can read and check.',
+  },
+  {
+    k: 'Conservative dietary tags',
+    v: 'We would rather under-claim than send someone with a serious allergy somewhere unsafe. A tag means we saw real evidence for it — when in doubt, we leave it off.',
+  },
+  {
+    k: 'Hidden gems found algorithmically',
+    v: 'Strong ratings, clean kitchens, and not enough reviews for anyone to have noticed yet. Surfaced by signal in the data — never because someone paid to be featured.',
+  },
+  {
+    k: 'No paid listings, ever',
+    v: 'Nobody can buy a grade, a ranking, or a place on this site. There is no sponsored placement and no advertiser who can call to have a bad score taken down.',
+  },
+];
+
+const promises = [
+  'Every grade traces back to a public record you can verify yourself.',
+  'We show the violations behind the score — including the ugly ones.',
+  'We tell you when a restaurant was last inspected, so you can judge how fresh the grade is.',
+  'We never accept money to change a grade, a ranking, or a listing.',
+  'We publish our method and our sources — and when we get something wrong, we fix it.',
+];
+
 const pageUrl = new URL('/about/', Astro.site).href;
 const orgId = `${new URL('/', Astro.site).href}#organization`;
 
 const seoTitle = 'About This Guide';
 const seoDescription =
-  'Central Florida Restaurant Grades is an independent guide that turns Florida DBPR public inspection records into clear A–F restaurant health grades.';
+  'Central Florida Taste is an independent guide that turns Florida DBPR public inspection records into clear A–F restaurant health grades. Built by Rohan Kadam.';
 
 const aboutSchema = {
   '@context': 'https://schema.org',
@@ -42,33 +87,217 @@ const breadcrumbSchema = {
     </nav>
 
     <article>
-      <p class="eyebrow">Transparency · About</p>
-      <h1>About this guide</h1>
-      <p class="lead">
-        Today the guide covers {s.n.toLocaleString('en-US')} restaurants across {s.counties} Central
-        Florida counties — {s.aCount.toLocaleString('en-US')} of them grade A.
-      </p>
-
-      <div class="prose">
-        <p>
-          Central Florida Restaurant Grades is an independent guide built to answer one question Florida
-          makes surprisingly hard: <em>is this restaurant clean?</em> The state inspects every
-          restaurant but never grades them, and the reports are scattered across a public database few
-          diners ever open. We pull those public records together, score them by a consistent
-          <a href="/methodology/">published method</a>, and pair them with dietary options and diner
-          ratings so you can decide where to eat with full information.
+      {/* ---------- hero: the founding story ---------- */}
+      <header class="hero">
+        <p class="eyebrow">Transparency · About</p>
+        <h1>We grade what Florida won&rsquo;t.</h1>
+        <p class="hero-lead">
+          Finding out whether a Central Florida restaurant is actually clean means digging through a
+          state database most diners don&rsquo;t know exists — one license number at a time. Rohan
+          Kadam got tired of doing that before dinner. So he built the thing that should have existed
+          already.
         </p>
-        <p>
-          This site is run by [YOUR NAME / ORG]. [One or two honest sentences on why you built it.]
-          We&rsquo;re not affiliated with the State of Florida or DBPR. Questions, corrections, or
-          partnership inquiries: [CONTACT EMAIL].
+        <p class="hero-sub">
+          Central Florida Taste takes the inspection records Florida already publishes, scores every
+          restaurant by one consistent method, and puts the answer where you can actually see it: a
+          letter, on a page, with the violations behind it.
         </p>
-      </div>
+      </header>
 
-      <nav class="trustlinks" aria-label="Trust and transparency">
-        <a href="/methodology/">How we grade</a>
-        <a href="/data-sources/">Data &amp; sources</a>
-      </nav>
+      {/* ---------- stat band (computed at build time) ---------- */}
+      <section class="statband" aria-label="Coverage at a glance">
+        {stats.map((st) => (
+          <div class="stat">
+            <span class="stat-v">{st.value}</span>
+            <span class="stat-l">{st.label}</span>
+          </div>
+        ))}
+      </section>
+
+      {/* ---------- the problem ---------- */}
+      <section class="block">
+        <p class="kicker">Why we exist</p>
+        <h2>Florida inspects. Florida never grades.</h2>
+        <div class="prose">
+          <p>
+            The state does the hard part. Inspectors visit every licensed restaurant, write down every
+            violation — the cold-holding failures, the roaches, the handwashing sinks with no soap —
+            and publish all of it. Then they stop. There is no letter in the window like New York or
+            Los Angeles. There is no verdict. There is just a public database, searchable if you
+            already know the license number, written for regulators rather than for the person
+            standing outside deciding whether to walk in.
+          </p>
+          <p>
+            So the information is technically public and practically useless. A restaurant with a
+            dozen high-priority violations looks exactly like a spotless one — same storefront, same
+            4.5 stars, same glowing reviews. The one thing you actually want to know is the one thing
+            nobody will tell you.
+          </p>
+          <p class="pull">
+            We read the records so you don&rsquo;t have to, and we turn them into a grade.
+          </p>
+        </div>
+      </section>
+
+      {/* ---------- differentiators ---------- */}
+      <section class="block">
+        <p class="kicker">What makes this different</p>
+        <h2>Not another review site.</h2>
+        <p class="block-lead">
+          Review sites tell you what a meal felt like. We tell you what an inspector found in the
+          kitchen.
+        </p>
+        <ul class="diffgrid">
+          {differentiators.map((d) => (
+            <li class="diff">
+              <h3>{d.k}</h3>
+              <p>{d.v}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ---------- promises ---------- */}
+      <section class="block">
+        <p class="kicker">What we promise</p>
+        <h2>Our standing commitments.</h2>
+        <ul class="checklist">
+          {promises.map((p) => (
+            <li>{p}</li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ---------- learn more ---------- */}
+      <section class="block">
+        <p class="kicker">Go deeper</p>
+        <h2>Check our work.</h2>
+        <div class="learncards">
+          <a class="learn" href="/methodology/">
+            <span class="learn-eyebrow">Methodology</span>
+            <span class="learn-title">How we calculate a grade</span>
+            <span class="learn-desc">
+              The exact formula: what each violation costs, where the A–F cutoffs sit, and what we
+              deliberately refuse to score.
+            </span>
+            <span class="learn-go">Read the method &rarr;</span>
+          </a>
+          <a class="learn" href="/data-sources/">
+            <span class="learn-eyebrow">Data &amp; sources</span>
+            <span class="learn-title">Where the data comes from</span>
+            <span class="learn-desc">
+              Florida DBPR public inspection records, how often we refresh them, and the known limits
+              of what they can tell you.
+            </span>
+            <span class="learn-go">See the sources &rarr;</span>
+          </a>
+        </div>
+      </section>
+
+      {/* ---------- contact ---------- */}
+      <section class="contact" aria-labelledby="contact-h">
+        <p class="kicker">Contact</p>
+        <h2 id="contact-h">Found something wrong? Tell us.</h2>
+        <div class="prose">
+          <p>
+            Central Florida Taste is built and run by <strong>Rohan Kadam</strong>. It is an
+            independent project and is <strong>not affiliated with the State of Florida or the
+            Department of Business &amp; Professional Regulation&nbsp;(DBPR)</strong>. We reproduce
+            their public records; we don&rsquo;t speak for them.
+          </p>
+          <p>
+            If a grade looks wrong, a restaurant has closed or changed hands, or you&rsquo;re a
+            journalist who wants to know exactly how a number was produced — write to us. Corrections
+            get priority.
+          </p>
+        </div>
+        <p class="mailrow">
+          <a class="mailbtn" href={`mailto:${CONTACT}`}>{CONTACT}</a>
+        </p>
+      </section>
     </article>
   </main>
+
+  <style>
+    article { max-width: 62rem; }
+
+    /* ---------- hero ---------- */
+    .hero { padding: 0.5rem 0 2.2rem; border-bottom: 1px solid var(--line); margin-bottom: 2.2rem; }
+    .hero h1 { margin: 0.2rem 0 1rem; font-size: clamp(2.1rem, 5.4vw, 3.5rem); line-height: 1.03; letter-spacing: -0.025em; max-width: 16ch; }
+    .hero-lead { margin: 0 0 0.9rem; font-size: clamp(1.05rem, 2.1vw, 1.3rem); line-height: 1.5; color: var(--ink-2); max-width: 46rem; }
+    .hero-sub { margin: 0; font-size: 1rem; line-height: 1.6; color: var(--mute); max-width: 44rem; }
+
+    /* ---------- stat band ---------- */
+    .statband {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+      background: var(--line-strong); border: 1px solid var(--line-strong);
+      border-left: 4px solid var(--citrus); border-radius: 2px; margin: 0 0 2.6rem; overflow: hidden;
+    }
+    .stat { background: var(--surface); padding: 1.15rem 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .stat-v { font-family: var(--mono); font-size: clamp(1.5rem, 3.4vw, 2.1rem); font-weight: 700; line-height: 1; color: var(--ink); }
+    .stat-l { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--mute); }
+
+    /* ---------- generic block ---------- */
+    .block { margin: 0 0 2.8rem; }
+    .kicker { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--citrus-ink); margin: 0 0 0.5rem; }
+    .block h2, .contact h2 { margin: 0 0 0.9rem; font-size: clamp(1.5rem, 3.2vw, 2.05rem); letter-spacing: -0.02em; line-height: 1.15; }
+    .block-lead { margin: 0 0 1.4rem; font-size: 1.05rem; color: var(--ink-2); max-width: 44rem; }
+    .pull {
+      margin: 1.4rem 0 0; padding: 0.9rem 0 0.9rem 1.1rem; border-left: 4px solid var(--citrus);
+      font-family: var(--display); font-size: clamp(1.15rem, 2.4vw, 1.45rem); line-height: 1.3;
+      letter-spacing: -0.015em; color: var(--ink); font-weight: 600;
+    }
+
+    /* ---------- differentiators ---------- */
+    ul.diffgrid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
+    .diff { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--g-a); border-radius: 2px; padding: 1.1rem 1.15rem; }
+    .diff:nth-child(2) { border-top-color: var(--g-b); }
+    .diff:nth-child(3) { border-top-color: var(--g-c); }
+    .diff:nth-child(4) { border-top-color: var(--citrus); }
+    .diff:nth-child(5) { border-top-color: var(--ink); }
+    .diff h3 { margin: 0 0 0.45rem; font-size: 1rem; letter-spacing: -0.01em; line-height: 1.25; }
+    .diff p { margin: 0; font-size: 0.9rem; line-height: 1.55; color: var(--ink-2); }
+
+    /* ---------- checklist ---------- */
+    ul.checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; max-width: 48rem; }
+    ul.checklist li {
+      position: relative; padding: 0.75rem 1rem 0.75rem 2.6rem; background: var(--surface);
+      border: 1px solid var(--line); border-radius: 2px; font-size: 0.95rem; line-height: 1.5; color: var(--ink-2);
+    }
+    ul.checklist li::before {
+      content: '✓'; position: absolute; left: 0.95rem; top: 0.72rem;
+      font-family: var(--mono); font-weight: 700; color: var(--g-a);
+    }
+
+    /* ---------- learn-more cards ---------- */
+    .learncards { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; }
+    .learn {
+      display: flex; flex-direction: column; gap: 0.4rem; text-decoration: none;
+      background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px;
+      padding: 1.2rem 1.25rem; transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .learn:hover { border-color: var(--citrus); transform: translateY(-2px); }
+    .learn-eyebrow { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--mute); }
+    .learn-title { font-family: var(--display); font-weight: 700; font-size: 1.12rem; letter-spacing: -0.015em; color: var(--ink); }
+    .learn-desc { font-size: 0.89rem; line-height: 1.55; color: var(--ink-2); }
+    .learn-go { margin-top: 0.35rem; font-size: 0.84rem; font-weight: 700; color: var(--citrus-ink); }
+
+    /* ---------- contact ---------- */
+    .contact { border-top: 1px solid var(--line); padding-top: 2.2rem; }
+    .mailrow { margin: 1.2rem 0 0; }
+    .mailbtn {
+      display: inline-block; font-family: var(--mono); font-size: 0.95rem; font-weight: 600;
+      background: var(--citrus); color: var(--ink); text-decoration: none;
+      padding: 0.7rem 1.2rem; border-radius: 2px; transition: filter 0.15s ease;
+    }
+    .mailbtn:hover { filter: brightness(0.95); }
+
+    @media (max-width: 46rem) {
+      .statband { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .learn { transition: none; }
+      .learn:hover { transform: none; }
+    }
+  </style>
 </Base>
