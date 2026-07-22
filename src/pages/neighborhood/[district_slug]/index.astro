@@ -98,8 +98,8 @@ const breadcrumbSchema = {
       <ListIntro intro={hub} pclass="lead" />
 
       {ownFilters.length > 0 && (
-        <section>
-          <h2>Browse {name} by diet &amp; cuisine</h2>
+        <section aria-labelledby="browse-h">
+          <h2 id="browse-h">Browse {name} by diet &amp; cuisine</h2>
           <ul class="link-list">
             {ownFilters.map((p) => (
               <li>
@@ -110,8 +110,8 @@ const breadcrumbSchema = {
         </section>
       )}
 
-      <section>
-        <h2>All {items.length} restaurants</h2>
+      <section aria-labelledby="all-h">
+        <h2 id="all-h">All {items.length} restaurants</h2>
         <ul class="cards">
           {sorted.map((r) => <RestaurantCard r={r} />)}
         </ul>

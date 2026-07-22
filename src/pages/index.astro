@@ -1,13 +1,15 @@
 ---
 import Base from '../layouts/Base.astro';
 import RestaurantCard from '../components/RestaurantCard.astro';
-import restaurants from '../data/restaurants.json';
 import { counties, districts, phase1 } from '../lib/data.js';
 import { specialPages } from '../lib/manifest.js';
 import { siteHook, homeIntro } from '../lib/prose.js';
 import { REPORTS } from '../lib/assets.js';
 
-const totalTracked = restaurants.length;
+// Published restaurants — the same set the lede and the grade panel describe.
+// (Deliberately NOT restaurants.length, which counts unpublished rows too and
+// contradicted the lede in the hero block.)
+const totalTracked = phase1.length;
 
 const countyList = [...counties].sort((a, b) => b.items.length - a.items.length);
 const districtList = [...districts].sort((a, b) => b.items.length - a.items.length);
@@ -49,9 +51,11 @@ const topRatedGuides = specialPages
 
 const siteUrl = new URL('/', Astro.site).href;
 const seoTitle = 'Central Florida Restaurants: Health Grades & Guide';
+// "official" was inaccurate: Florida issues no official grades — ours are
+// calculated from DBPR's public inspection records (see /methodology/).
 const seoDescription =
-  'Browse Central Florida restaurants by official health inspection grade (A–F), dietary ' +
-  'options, and diner ratings — find clean, safe places to eat.';
+  'Browse Central Florida restaurants by A–F health grades we calculate from Florida DBPR ' +
+  'inspection records, plus dietary options and diner ratings.';
 
 const websiteSchema = {
   '@context': 'https://schema.org',
@@ -101,11 +105,11 @@ const faqSchema = {
   />
 
   <main>
-    <section class="hero__body">
+    <section class="hero__body" aria-labelledby="hero-h">
       <p class="hero__eyebrow"><span class="dot" aria-hidden="true"></span>DBPR-graded · {totalTracked.toLocaleString('en-US')} restaurants · Updated June 2026</p>
       <div class="hero__grid">
         <div class="hero__intro">
-          <h1 class="hero__title">Central Florida Restaurants, Graded <span class="accent">A–F</span> by Health Inspection</h1>
+          <h1 class="hero__title" id="hero-h">Central Florida Restaurants, Graded <span class="accent">A–F</span> by Health Inspection</h1>
           <p class="hero__lede">{homeLede}</p>
           {hook && <p class="hero__hook">{hook.text}</p>}
         </div>
@@ -113,7 +117,7 @@ const faqSchema = {
         <aside class="dist" aria-label="Health grade distribution across published restaurants">
           <div class="dist__head">
             <span class="dist__title">Grade distribution</span>
-            <span class="dist__n">{distTotal.toLocaleString('en-US')} graded</span>
+            <span class="dist__n">{distTotal.toLocaleString('en-US')} graded A&ndash;F</span>
           </div>
           <div class="dist__bar" aria-hidden="true">
             {GRADES.map(({ g }) => gradeCounts[g] > 0 && (
@@ -153,8 +157,8 @@ const faqSchema = {
         </a></li>
       </ul>
 
-      <section id="reports">
-        <h2>Data stories</h2>
+      <section id="reports" aria-labelledby="reports-h">
+        <h2 id="reports-h">Data stories</h2>
         <p class="reports-intro">The counterintuitive truths hiding in the inspection data — built to be read, screenshotted, and argued about.</p>
         <ul class="reportcards">
           {REPORTS.map((p) => (
@@ -167,8 +171,8 @@ const faqSchema = {
         </ul>
       </section>
 
-      <section id="counties">
-        <h2>Browse by county</h2>
+      <section id="counties" aria-labelledby="counties-h">
+        <h2 id="counties-h">Browse by county</h2>
         <ul class="chiplist">
           {countyList.map((c) => (
             <li>
@@ -178,8 +182,8 @@ const faqSchema = {
         </ul>
       </section>
 
-      <section id="districts">
-        <h2>Dining districts &amp; neighborhoods</h2>
+      <section id="districts" aria-labelledby="districts-h">
+        <h2 id="districts-h">Dining districts &amp; neighborhoods</h2>
         <ul class="chiplist">
           {districtList.map((d) => (
             <li>
@@ -190,8 +194,8 @@ const faqSchema = {
       </section>
 
       {topRatedGuides.length > 0 && (
-        <section id="favorites">
-          <h2>Health &amp; local favorites</h2>
+        <section id="favorites" aria-labelledby="favorites-h">
+          <h2 id="favorites-h">Health &amp; local favorites</h2>
           <ul class="link-list">
             {topRatedGuides.map((p) => (
               <li><a href={`${p.url}/`}>Top-Rated, Health-Safe Restaurants in {p.geoName}</a> ({p.items.length})</li>
@@ -200,15 +204,15 @@ const faqSchema = {
         </section>
       )}
 
-      <section id="featured">
-        <h2>Featured restaurants</h2>
+      <section id="featured" aria-labelledby="featured-h">
+        <h2 id="featured-h">Featured restaurants</h2>
         <ul class="cards">
           {featured.map((r) => <RestaurantCard r={r} />)}
         </ul>
       </section>
 
-      <section id="faq">
-        <h2>Frequently asked questions about Florida restaurant grades</h2>
+      <section id="faq" aria-labelledby="faq-h">
+        <h2 id="faq-h">Frequently asked questions about Florida restaurant grades</h2>
         <div class="prose">
           {faqs.map((f) => (
             <>

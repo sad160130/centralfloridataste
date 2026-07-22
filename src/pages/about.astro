@@ -115,9 +115,9 @@ const breadcrumbSchema = {
       </section>
 
       {/* ---------- the problem ---------- */}
-      <section class="block">
+      <section class="block" aria-labelledby="why-h">
         <p class="kicker">Why we exist</p>
-        <h2>Florida inspects. Florida never grades.</h2>
+        <h2 id="why-h">Florida inspects. Florida never grades.</h2>
         <div class="prose">
           <p>
             The state does the hard part. Inspectors visit every licensed restaurant, write down every
@@ -140,9 +140,9 @@ const breadcrumbSchema = {
       </section>
 
       {/* ---------- differentiators ---------- */}
-      <section class="block">
+      <section class="block" aria-labelledby="diff-h">
         <p class="kicker">What makes this different</p>
-        <h2>Not another review site.</h2>
+        <h2 id="diff-h">Not another review site.</h2>
         <p class="block-lead">
           Review sites tell you what a meal felt like. We tell you what an inspector found in the
           kitchen.
@@ -158,9 +158,9 @@ const breadcrumbSchema = {
       </section>
 
       {/* ---------- promises ---------- */}
-      <section class="block">
+      <section class="block" aria-labelledby="promise-h">
         <p class="kicker">What we promise</p>
-        <h2>Our standing commitments.</h2>
+        <h2 id="promise-h">Our standing commitments.</h2>
         <ul class="checklist">
           {promises.map((p) => (
             <li>{p}</li>
@@ -169,9 +169,9 @@ const breadcrumbSchema = {
       </section>
 
       {/* ---------- learn more ---------- */}
-      <section class="block">
+      <section class="block" aria-labelledby="learn-h">
         <p class="kicker">Go deeper</p>
-        <h2>Check our work.</h2>
+        <h2 id="learn-h">Check our work.</h2>
         <div class="learncards">
           <a class="learn" href="/methodology/">
             <span class="learn-eyebrow">Methodology</span>

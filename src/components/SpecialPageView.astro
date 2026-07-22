@@ -51,6 +51,17 @@ if (specialType === 'hidden_gems') {
 }
 const intro = specialIntro(page);
 
+// The ranked list is this page's primary functional component, so it gets a
+// real heading (matching the filter pages) instead of shipping unlabelled.
+let listHeading;
+if (specialType === 'hidden_gems') {
+  listHeading = `${n.toLocaleString('en-US')} hidden-gem ${plural}`;
+} else if (specialType === 'top_rated_safe') {
+  listHeading = `${n.toLocaleString('en-US')} top-rated, health-safe ${plural}`;
+} else {
+  listHeading = `${n.toLocaleString('en-US')} lowest-scoring ${plural}`;
+}
+
 const showViolations = specialType === 'worst_health';
 
 const seoTitle = h1.slice(0, 60);
@@ -145,13 +156,16 @@ const breadcrumbSchema = {
       <h1>{h1}</h1>
       <ListIntro intro={intro} />
 
-      <GradeAttribution />
-
-      <section>
+      <section aria-labelledby="ranked-list-h">
+        <h2 id="ranked-list-h">{listHeading}</h2>
         <ul class="cards">
           {sorted.map((r) => <RestaurantCard r={r} showViolations={showViolations} />)}
         </ul>
       </section>
+
+      {/* Trust signal below the list — it qualifies the grades rather than
+          leading the page, and the full method lives on /methodology/. */}
+      <GradeAttribution />
 
       <nav class="hub-links" aria-label="Explore more">
         <strong>Explore more:</strong>

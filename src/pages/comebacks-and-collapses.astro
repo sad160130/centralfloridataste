@@ -44,8 +44,8 @@ const Trajectory = { comebacks, collapses };
     </p>
 
     <div class="cc-cols">
-      <section class="cc-col">
-        <h2 class="cc-h cc-up">↑ Biggest comebacks</h2>
+      <section class="cc-col" aria-labelledby="comebacks-h">
+        <h2 id="comebacks-h" class="cc-h cc-up">↑ Biggest comebacks</h2>
         {comebacks.map((t) => (
           <article class="cc-card">
             <header class="cc-head">
@@ -67,8 +67,8 @@ const Trajectory = { comebacks, collapses };
         ))}
       </section>
 
-      <section class="cc-col">
-        <h2 class="cc-h cc-down">↓ Biggest collapses</h2>
+      <section class="cc-col" aria-labelledby="collapses-h">
+        <h2 id="collapses-h" class="cc-h cc-down">↓ Biggest collapses</h2>
         {collapses.map((t) => (
           <article class="cc-card">
             <header class="cc-head">
@@ -91,8 +91,8 @@ const Trajectory = { comebacks, collapses };
       </section>
     </div>
 
-    <section class="lf-more">
-      <h2>More data reports</h2>
+    <section class="lf-more" aria-labelledby="more-reports-h">
+      <h2 id="more-reports-h">More data reports</h2>
       <ul class="reportcards">
         {others.map((p) => (
           <li><a class="reportcard" href={p.url}>

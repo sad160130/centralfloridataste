@@ -69,8 +69,8 @@ const barW = (avg) => Math.round(12 + ((avg - (minAvg - 2)) / (maxAvg - (minAvg 
       dicey steakhouse can sit a full letter apart — the kitchen, not the menu, decides the grade.
     </p>
 
-    <section class="lf-more">
-      <h2>More data reports</h2>
+    <section class="lf-more" aria-labelledby="more-reports-h">
+      <h2 id="more-reports-h">More data reports</h2>
       <ul class="reportcards">
         {others.map((p) => (
           <li><a class="reportcard" href={p.url}>

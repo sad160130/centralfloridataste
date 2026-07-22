@@ -4,8 +4,8 @@
 import GradeBadge from './GradeBadge.astro';
 const { r, nearby, p1Urls } = Astro.props;
 ---
-<section>
-  <h2>Safer options nearby</h2>
+<section aria-labelledby="safer-nearby-h">
+  <h2 id="safer-nearby-h">Safer options nearby</h2>
   <p>Higher-graded restaurants close to {r.name}, by Florida DBPR grade:</p>
   <ul class="saferlist">
     {nearby.map((n) => (

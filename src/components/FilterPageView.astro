@@ -143,16 +143,16 @@ const breadcrumbSchema = {
       <h1>{h1}</h1>
       <ListIntro intro={intro} />
 
-      <section>
-        <h2>{items.length} {label.toLowerCase()} {items.length === 1 ? 'restaurant' : 'restaurants'}</h2>
+      <section aria-labelledby="filter-list-h">
+        <h2 id="filter-list-h">{items.length} {label.toLowerCase()} {items.length === 1 ? 'restaurant' : 'restaurants'}</h2>
         <ul class="cards">
           {sorted.map((r) => <RestaurantCard r={r} />)}
         </ul>
       </section>
 
       {siblings.length > 0 && (
-        <section>
-          <h2>Related guides in {geoDisplay}</h2>
+        <section aria-labelledby="related-h">
+          <h2 id="related-h">Related guides in {geoDisplay}</h2>
           <ul class="link-list">
             {siblings.map((p) => (
               <li>

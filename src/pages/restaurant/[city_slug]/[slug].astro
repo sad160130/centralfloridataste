@@ -228,13 +228,11 @@ const breadcrumbSchema = {
     </nav>
 
     <article>
-      {photo && (
-        <figure class="detail-photo">
-          <img src={photo.src} alt={`Photo of ${r.name}`} loading="eager" fetchpriority="high" decoding="async" width="800" height="450" />
-          <figcaption set:html={`Photo: ${photo.attribution.length ? photo.attribution.join(' · ') : 'via Google'}`} />
-        </figure>
-      )}
-
+      {/* CENTERPIECE — the verdict leads: placard, name, then the sentence that
+          answers "is this place clean?", so the query-answering block sits in
+          the first ~200 characters of <main>. The photo (with its required
+          Google attribution) and the DBPR disclaimer follow below: they are
+          decoration and trust signals, not the lede. */}
       <div class="detail-head">
         <GradeBadge grade={r.health_grade} score={r.health_score} size="lg" />
         <h1>
@@ -242,12 +240,6 @@ const breadcrumbSchema = {
           {r.hidden_gem && <span class="badge">★ Hidden gem</span>}
         </h1>
       </div>
-
-      <GradeAttribution updated={inspectionDate || 'June 2026'} />
-
-      {prose.callout && (
-        <p class={`signal signal--${prose.callout.kind}`}>{prose.callout.text}</p>
-      )}
 
       {prose.format === 'qa' ? (
         <p class="lead-prose"><strong>{prose.qa.q}</strong> {prose.qa.a}</p>
@@ -259,6 +251,10 @@ const breadcrumbSchema = {
         <p class="lead-prose">{prose.lead}</p>
       )}
       {prose.support && <p>{prose.support}</p>}
+
+      {prose.callout && (
+        <p class={`signal signal--${prose.callout.kind}`}>{prose.callout.text}</p>
+      )}
 
       {(r.directions_url || telHref) && (
         <p class="actions">
@@ -272,8 +268,8 @@ const breadcrumbSchema = {
       {/* Risky kitchens surface safer alternatives up front; clean ones don't need to. */}
       {prose.promoteSafer && showNearby && <SaferNearby r={r} nearby={nearby} p1Urls={p1Urls} />}
 
-      <section>
-        <h2>Restaurant details</h2>
+      <section aria-labelledby="details-h">
+        <h2 id="details-h">Restaurant details</h2>
         <dl class="facts">
           {r.health_grade && (
             <>
@@ -362,6 +358,16 @@ const breadcrumbSchema = {
         </dl>
       </section>
 
+      {/* Storefront photo sits below the verdict and the facts: Google's
+          required attribution travels with the image, and neither the credit
+          nor the caption intrudes on the page's centerpiece window. */}
+      {photo && (
+        <figure class="detail-photo">
+          <img src={photo.src} alt={`Photo of ${r.name}`} loading="eager" fetchpriority="high" decoding="async" width="800" height="450" />
+          <figcaption set:html={`Photo: ${photo.attribution.length ? photo.attribution.join(' · ') : 'via Google'}`} />
+        </figure>
+      )}
+
       {hasCommunity && (
         <section class="community" aria-labelledby="community-h">
           <div class="dr-head">
@@ -436,8 +442,8 @@ const breadcrumbSchema = {
       </section>
 
       {hours.length > 0 && (
-        <section>
-          <h2>Opening hours</h2>
+        <section aria-labelledby="hours-h">
+          <h2 id="hours-h">Opening hours</h2>
           <dl class="hours">
             {hours.map((h) => (
               <>
@@ -450,8 +456,8 @@ const breadcrumbSchema = {
       )}
 
       {history.length > 0 && (
-        <section>
-          <h2>Inspection history</h2>
+        <section aria-labelledby="history-h">
+          <h2 id="history-h">Inspection history</h2>
           <p class="src">
             The following records are from Florida DBPR public inspection records, most recent first.
           </p>
@@ -482,6 +488,10 @@ const breadcrumbSchema = {
       )}
 
       {showNearby && !prose.promoteSafer && <SaferNearby r={r} nearby={nearby} p1Urls={p1Urls} />}
+
+      {/* Trust signal, deliberately below the fold — it qualifies the grade
+          rather than announcing it, and the full method lives on /methodology/. */}
+      <GradeAttribution updated={inspectionDate || 'June 2026'} />
 
       <nav class="hub-links" aria-label="Explore more">
         <strong>Explore more:</strong>

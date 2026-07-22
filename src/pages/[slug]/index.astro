@@ -62,8 +62,10 @@ const h1 = `${geoLabel} Restaurant Health Grades`;
 const hub = hubIntro({ type, displayName, slug, items });
 
 const seoTitle = `${geoLabel} Restaurant Health Grades${isCounty ? '' : ', FL'}`.slice(0, 60);
+// Not "official": Florida issues no official grades — ours are calculated from
+// DBPR's public inspection records (see /methodology/).
 const seoDescription = (
-  `${geoLabel} restaurant health grades: browse ${items.length} restaurants by official A–F ` +
+  `${geoLabel} restaurant health grades: browse ${items.length} restaurants by our A–F ` +
   `inspection score, plus dietary options and diner ratings.`
 ).slice(0, 155);
 
@@ -163,8 +165,8 @@ const breadcrumbSchema = {
       <ListIntro intro={hub} pclass="lead" />
 
       {isCounty && cityHubsInCounty.length > 0 && (
-        <section>
-          <h2>Cities in {displayName} County</h2>
+        <section aria-labelledby="cities-h">
+          <h2 id="cities-h">Cities in {displayName} County</h2>
           <ul class="chiplist">
             {cityHubsInCounty.map((c) => (
               <li><a href={`/${c.slug}/`}>{titleCase(c.name)} <span class="ct">{c.items.length}</span></a></li>
@@ -174,8 +176,8 @@ const breadcrumbSchema = {
       )}
 
       {specials.length > 0 && (
-        <section>
-          <h2>Health &amp; local favorites</h2>
+        <section aria-labelledby="favorites-h">
+          <h2 id="favorites-h">Health &amp; local favorites</h2>
           <ul class="link-list">
             {specials.map((p) => (
               <li><a href={`${p.url}/`}>{p.label} in {p.geoName}{p.geoType === 'county' ? ' County' : ''}</a> ({p.items.length})</li>
@@ -185,8 +187,8 @@ const breadcrumbSchema = {
       )}
 
       {ownFilters.length > 0 && (
-        <section>
-          <h2>Browse {displayName}{isCounty ? ' County' : ''} by diet &amp; cuisine</h2>
+        <section aria-labelledby="browse-h">
+          <h2 id="browse-h">Browse {displayName}{isCounty ? ' County' : ''} by diet &amp; cuisine</h2>
           <ul class="link-list">
             {ownFilters.map((p) => (
               <li>
@@ -198,8 +200,8 @@ const breadcrumbSchema = {
       )}
 
       {isCounty && orphanCityFilterGroups.length > 0 && (
-        <section>
-          <h2>More guides by city</h2>
+        <section aria-labelledby="more-guides-h">
+          <h2 id="more-guides-h">More guides by city</h2>
           <ul class="link-list">
             {orphanCityFilterGroups.map((g) => (
               <li>
@@ -216,15 +218,15 @@ const breadcrumbSchema = {
         </section>
       )}
 
-      <section>
-        <h2>All {items.length} restaurants</h2>
+      <section aria-labelledby="all-h">
+        <h2 id="all-h">All {items.length} restaurants</h2>
         <ul class="cards">
           {sorted.map((r) => <RestaurantCard r={r} />)}
         </ul>
       </section>
 
-      <section id="faq">
-        <h2>{geoLabel} restaurant health grades — FAQ</h2>
+      <section id="faq" aria-labelledby="faq-h">
+        <h2 id="faq-h">{geoLabel} restaurant health grades — FAQ</h2>
         <div class="prose">
           {faqs.map((f) => (
             <>
