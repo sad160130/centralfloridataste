@@ -10,6 +10,7 @@ import { listingProse } from '../../../lib/prose.js';
 import { photoInfo } from '../../../lib/photos.js';
 import { reviewInfo } from '../../../lib/reviews.js';
 import { compositeScore } from '../../../lib/score.js';
+import { healthGradeReview, healthGradeProperties } from '../../../lib/health-rating.js';
 
 // One static page per restaurant — only published === true rows are emitted.
 export function getStaticPaths() {
@@ -155,6 +156,9 @@ if (latest) {
     inspectionProps.push({ '@type': 'PropertyValue', name: `Violation ${v.code}: ${v.description}`, value: v.count });
 }
 
+// Grade/score first, then the inspection facts that produced them.
+const allProps = [...healthGradeProperties(r), ...inspectionProps];
+
 const restaurantSchema = {
   '@context': 'https://schema.org',
   '@type': 'Restaurant',
@@ -184,7 +188,11 @@ const restaurantSchema = {
         worstRating: 1,
       }
     : undefined,
-  additionalProperty: inspectionProps.length ? inspectionProps : undefined,
+  // Our calculated grade as a critic-style Review authored by this site —
+  // distinct from `aggregateRating` above, which is the diner star rating.
+  // Omitted entirely for unrated (NR) records.
+  review: healthGradeReview(r, orgId) || undefined,
+  additionalProperty: allProps.length ? allProps : undefined,
   publisher: { '@id': orgId },
   dateModified: r.latest_inspection_date || undefined,
 };
