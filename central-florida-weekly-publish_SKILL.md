@@ -27,7 +27,7 @@ ERFNYC knowledge base (`/docs/erfnyc-playbook.md`).
 
 ## TRIGGER: "do the weekly publish"
 
-Run these steps in order. **Pause for diff review before step 8 (publish/commit) — this is mandatory.**
+Run these steps in order. **Pause for diff review before step 9 (publish/commit) — this is mandatory.**
 
 **1. Select the batch.**
 From `Data/page_manifest.csv`, take the next `BATCH_SIZE` *unpublished* pages, ordered by `phase` (2 then 3) and then by priority (review volume, match confidence, hidden-gem, district, notable grade). Listings drive the batch; combo and special pages (dietary×geo, cuisine×geo, hidden-gems, grade-A, worst-scores) are pulled in automatically when enough of their listings are now published to clear the page's threshold.
@@ -49,15 +49,31 @@ Run `node scripts/fetch-restaurant-photos.mjs` (reads `GOOGLE_MAPS_API_KEY` + `B
 
 **6. Technical floor check.** Static-text litmus (View Source shows content), 404 intact, canonical/OG/schema present on a sampled new page of each type; spot-check a new card + detail page render the Blob photo (or monogram) with attribution. Report a pass/fail table by page type.
 
-**7. ⏸ DIFF REVIEW — pause and show me the diffs before applying.** (Mandatory per operating principles.) Summarize: pages added, total now live, new photos fetched + per-batch photo cost, any audit fixes made.
+**7. Visual-semantics checks — run on the NEW pages before the pause.**
+Write the newly-built URLs to a file (one per line) and run the
+**visual-semantics** skill's checker against them:
+```bash
+node .claude/skills/visual-semantics/check.mjs --pages new_pages.txt
+```
+It enforces the four rules proved on the live templates: R1 the verdict leads
+the centerpiece (no photo credit / disclaimer / "last updated" in the first
+400 chars), R2 the primary verdict exists in JSON-LD (health grade as a critic
+`Review`, calculated-not-official, none on NR pages; `ItemList` on any
+`CollectionPage`), R3 every functional block is named, R4 the first 400 chars
+are page-unique. Exit `0` passes, `1` fails. **Report the pass/fail table in
+the step-8 diff summary — a page that violates a rule does not deploy.** Fix
+the shared template rather than the page; that retrofits the whole site on the
+next build.
 
-**8. Publish.** On approval: commit with `chore(publish): weekly batch YYYY-MM-DD — N pages (cumulative M)` — **include the updated `Data/photo_cache.json`** so the build resolves the new Blob photos (image bytes stay out of the repo). Rebuild `dist/`, deploy to host, and submit the updated sitemap / ping IndexNow so the new URLs are discovered. Append to `Data/publish_log.json` and update `MEMORY.md` with the cumulative total.
+**8. ⏸ DIFF REVIEW — pause and show me the diffs before applying.** (Mandatory per operating principles.) Summarize: pages added, total now live, new photos fetched + per-batch photo cost, any audit fixes made.
 
-**9. GSC gate (before NEXT week).** Check the prior batches in Google Search Console — indexation rate, impressions, any coverage errors. **Do not raise BATCH_SIZE until prior batches are indexing cleanly.** If indexation stalls, hold the next batch and investigate before publishing more.
+**9. Publish.** On approval: commit with `chore(publish): weekly batch YYYY-MM-DD — N pages (cumulative M)` — **include the updated `Data/photo_cache.json`** so the build resolves the new Blob photos (image bytes stay out of the repo). Rebuild `dist/`, deploy to host, and submit the updated sitemap / ping IndexNow so the new URLs are discovered. Append to `Data/publish_log.json` and update `MEMORY.md` with the cumulative total.
+
+**10. GSC gate (before NEXT week).** Check the prior batches in Google Search Console — indexation rate, impressions, any coverage errors. **Do not raise BATCH_SIZE until prior batches are indexing cleanly.** If indexation stalls, hold the next batch and investigate before publishing more.
 
 ## TRIGGER: "re-score the DBPR batch" (monthly / when DBPR refreshes)
 Re-pull the District 4 inspection + license extracts, re-run the scoring pipeline (`score_establishments.py`), re-merge enrichment, and refresh `restaurants.json` + `region4_master.csv` so health scores reflect new inspections. Already-published pages update in place on the next build; do not change their published status. Photos are unaffected (the ledger persists); they only re-fetch on the 25-day cycle. Keep the join-key rule (strip the rank-code prefix + leading zeros) and `dtype=str` discipline.
 
 ## Notes
-- Run manually each Sunday by typing the trigger, or schedule it — but always honor the step-7 diff-review pause.
+- Run manually each Sunday by typing the trigger, or schedule it — but always honor the step-8 diff-review pause.
 - Never publish all remaining pages at once; the weekly cadence is itself a ranking signal.
