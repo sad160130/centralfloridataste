@@ -4,6 +4,7 @@ import RestaurantCard from './RestaurantCard.astro';
 import GradeAttribution from './GradeAttribution.astro';
 import { cityHubSlugs } from '../lib/data.js';
 import { specialIntro } from '../lib/prose.js';
+import { comboHubLinks } from '../lib/hublinks.js';
 import ListIntro from './ListIntro.astro';
 
 const { page } = Astro.props;
@@ -61,6 +62,10 @@ if (specialType === 'hidden_gems') {
 } else {
   listHeading = `${n.toLocaleString('en-US')} lowest-scoring ${plural}`;
 }
+
+// Parent city/county hubs plus the sibling guides for the same geo, so curated
+// hubs are reachable from more than just their own hub (see lib/hublinks.js).
+const related = comboHubLinks({ geoType, geoSlug, currentUrl: url });
 
 const showViolations = specialType === 'worst_health';
 
@@ -167,9 +172,23 @@ const breadcrumbSchema = {
           leading the page, and the full method lives on /methodology/. */}
       <GradeAttribution />
 
+      {related.siblings.length > 0 && (
+        <section aria-labelledby="related-h">
+          <h2 id="related-h">Related guides in {geoDisplay}</h2>
+          <ul class="link-list">
+            {related.siblings.map((p) => (
+              <li><a href={p.url}>{p.label}</a> ({p.count})</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <nav class="hub-links" aria-label="Explore more">
         <strong>Explore more:</strong>
         <a href={hubUrl}>{hubText}</a>
+        {related.city && related.city.url !== hubUrl && <a href={related.city.url}>{related.city.label}</a>}
+        {related.county && related.county.url !== hubUrl && <a href={related.county.url}>{related.county.label}</a>}
+        <a href="/guides/">All guides</a>
       </nav>
     </article>
   </main>

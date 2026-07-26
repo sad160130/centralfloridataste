@@ -11,6 +11,7 @@ import { photoInfo } from '../../../lib/photos.js';
 import { reviewInfo } from '../../../lib/reviews.js';
 import { compositeScore } from '../../../lib/score.js';
 import { healthGradeReview, healthGradeProperties } from '../../../lib/health-rating.js';
+import { restaurantCombos } from '../../../lib/hublinks.js';
 
 // One static page per restaurant — only published === true rows are emitted.
 export function getStaticPaths() {
@@ -84,6 +85,11 @@ const p1Urls = new Set();
 for (const x of restaurants) if (x.published === true) p1Urls.add(x.url);
 const nearby = Array.isArray(r.nearby_safer) ? r.nearby_safer : [];
 const showNearby = r.health_grade !== 'A' && nearby.length > 0;
+
+// The combo guides this restaurant actually qualifies for, scoped to its own
+// city — its cuisine guide plus each dietary guide whose flag it carries. This
+// makes every listing an inlink source for those hubs (see lib/hublinks.js).
+const comboGuides = restaurantCombos(r);
 
 /* ---------- distinctive, data-driven prose (see lib/prose.js) ----------
    Opens with the single most notable TRUE fact about this restaurant and
@@ -509,6 +515,8 @@ const breadcrumbSchema = {
         <a href={`/${r.county_slug}-county/`}>{r.county} County</a>
         {cityHasHub && <a href={`/${r.city_slug}/`}>{cityDisplay}</a>}
         {districtHasHub && <a href={`/neighborhood/${r.district_slug}/`}>{r.district}</a>}
+        {comboGuides.map((g) => <a href={g.url}>{g.label} in {cityDisplay}</a>)}
+        <a href="/guides/">All guides</a>
       </nav>
     </article>
   </main>

@@ -1,0 +1,178 @@
+---
+import Base from '../layouts/Base.astro';
+import { guidesTree } from '../lib/hublinks.js';
+
+// Complete server-rendered index of every guide (hub) page on the site,
+// grouped county > city > type. Plain <a> links, no JS, nothing collapsed —
+// the whole graph is visible to a first-pass crawl.
+const tree = guidesTree();
+
+const totalHubs =
+  tree.length +
+  tree.reduce(
+    (s, c) =>
+      s +
+      c.countyLevel.length +
+      c.cities.length +
+      c.cities.reduce((n, ct) => n + ct.pages.length, 0) +
+      c.otherCities.reduce((n, g) => n + g.pages.length, 0) +
+      c.districts.length +
+      c.districts.reduce((n, d) => n + d.pages.length, 0),
+    0
+  );
+
+const pageUrl = new URL('/guides/', Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+const seoTitle = 'All Restaurant Guides by County & City';
+const seoDescription =
+  `Every Central Florida restaurant guide in one index: ${totalHubs} county, city, ` +
+  `neighborhood, dietary, cuisine and health-score guides, all graded from DBPR records.`;
+
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'All restaurant guides',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': orgId },
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: tree.length,
+    itemListElement: tree.map((c, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(c.url, Astro.site).href,
+      name: `${c.name} County`,
+    })),
+  },
+};
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: 'All guides', item: pageUrl },
+  ],
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([collectionSchema, breadcrumbSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo; <span>All guides</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">Directory · All guides</p>
+      <h1>Every Central Florida restaurant guide</h1>
+      <p class="lead">
+        {totalHubs.toLocaleString('en-US')} guides across {tree.length} counties — by city and
+        neighborhood, by diet and cuisine, and by health score. Every guide below is graded from
+        Florida DBPR public inspection records.
+      </p>
+
+      <nav class="guide-jump" aria-label="Jump to county">
+        {tree.map((c) => <a href={`#${c.slug}`}>{c.name}</a>)}
+      </nav>
+
+      {tree.map((c) => (
+        <section class="guide-county" aria-labelledby={`${c.slug}-h`}>
+          <h2 id={`${c.slug}-h`}>
+            <a href={c.url}>{c.name} County</a>
+            <span class="gc-count">{c.count.toLocaleString('en-US')} restaurants</span>
+          </h2>
+
+          {c.countyLevel.length > 0 && (
+            <div class="guide-group">
+              <h3>Countywide guides</h3>
+              <ul class="guide-links">
+                {c.countyLevel.map((p) => (
+                  <li><a href={p.url}>{p.label}</a> <span class="ct">{p.count}</span></li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {c.cities.map((ct) => (
+            <div class="guide-group">
+              <h3><a href={ct.url}>{ct.name}</a> <span class="ct">{ct.count}</span></h3>
+              {ct.pages.length > 0 && (
+                <ul class="guide-links">
+                  {ct.pages.map((p) => (
+                    <li><a href={p.url}>{p.label}</a> <span class="ct">{p.count}</span></li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+
+          {c.otherCities.length > 0 && (
+            <div class="guide-group">
+              <h3>More guides by city</h3>
+              {c.otherCities.map((g) => (
+                <ul class="guide-links">
+                  <li class="gl-city">{g.city}:</li>
+                  {g.pages.map((p) => (
+                    <li><a href={p.url}>{p.label}</a> <span class="ct">{p.count}</span></li>
+                  ))}
+                </ul>
+              ))}
+            </div>
+          )}
+
+          {c.districts.length > 0 && (
+            <div class="guide-group">
+              <h3>Neighborhoods</h3>
+              {c.districts.map((d) => (
+                <ul class="guide-links">
+                  <li class="gl-city"><a href={d.url}>{d.name}</a></li>
+                  {d.pages.map((p) => (
+                    <li><a href={p.url}>{p.label}</a> <span class="ct">{p.count}</span></li>
+                  ))}
+                </ul>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+    </article>
+  </main>
+
+  <style>
+    article { max-width: 68rem; }
+    .lead { max-width: 46rem; }
+    .guide-jump { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 2rem; }
+    .guide-jump a {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--citrus-ink); text-decoration: none; padding: 0.4rem 0.7rem;
+      background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px;
+    }
+    .guide-jump a:hover { border-color: var(--citrus); }
+
+    .guide-county { margin: 0 0 2.4rem; border-top: 1px solid var(--line-strong); padding-top: 1.2rem; }
+    .guide-county > h2 { margin: 0 0 1rem; font-size: clamp(1.3rem, 2.6vw, 1.7rem); display: flex; align-items: baseline; gap: 0.7rem; flex-wrap: wrap; }
+    .guide-county > h2 a { color: var(--ink); text-decoration: none; }
+    .guide-county > h2 a:hover { color: var(--citrus-ink); text-decoration: underline; }
+    .gc-count { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mute); font-weight: 400; }
+
+    .guide-group { margin: 0 0 1.1rem; }
+    .guide-group h3 { margin: 0 0 0.4rem; font-size: 0.95rem; letter-spacing: -0.01em; }
+    .guide-group h3 a { color: var(--ink); text-decoration: none; }
+    .guide-group h3 a:hover { color: var(--citrus-ink); text-decoration: underline; }
+
+    ul.guide-links { list-style: none; padding: 0; margin: 0 0 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; }
+    ul.guide-links li { font-size: 0.88rem; }
+    ul.guide-links a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
+    ul.guide-links a:hover { color: var(--citrus-ink); border-bottom-color: var(--citrus); }
+    .gl-city { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
+    .gl-city a { color: var(--mute); border-bottom: 0; }
+    .ct { font-family: var(--mono); font-size: 0.66rem; color: var(--mute); }
+  </style>
+</Base>

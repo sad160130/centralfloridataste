@@ -2,7 +2,8 @@
 import Base from '../../layouts/Base.astro';
 import RestaurantCard from '../../components/RestaurantCard.astro';
 import { counties, cities } from '../../lib/data.js';
-import { countyFilters, cityFilters, sortFilters, orphanCityFiltersForCounty, specialByCity, specialByCounty } from '../../lib/manifest.js';
+import { countyFilters, cityFilters, sortFilters, specialByCity, specialByCounty } from '../../lib/manifest.js';
+import { countyHubLinks, cityHubLinks } from '../../lib/hublinks.js';
 import { titleCase, sortForHub } from '../../lib/format.js';
 import { hubIntro } from '../../lib/prose.js';
 import ListIntro from '../../components/ListIntro.astro';
@@ -47,8 +48,13 @@ const cityHubsInCounty = isCounty
 
 // Dietary/cuisine filter pages available for this area (reverse links, no orphans).
 const ownFilters = sortFilters((isCounty ? countyFilters.get(slug) : cityFilters.get(slug)) || []);
-// On a county hub, also surface filter pages for its cities that have no hub.
-const orphanCityFilterGroups = isCounty ? orphanCityFiltersForCounty(slug) : [];
+
+/* Complete hub-to-hub coverage (see lib/hublinks.js). A county hub links every
+   guide beneath it — for every city, hub or not, plus its neighborhoods — so no
+   combo hub depends on being reachable only via the sitemap. A city hub links
+   its own guides, its parent county and its sibling cities. */
+const countyLinks = isCounty ? countyHubLinks(slug) : null;
+const cityLinks = isCounty ? null : cityHubLinks(slug);
 
 // Health-score "special" pages for this area.
 const specials = (isCounty ? specialByCounty.get(slug) : specialByCity.get(slug)) || [];
@@ -199,22 +205,55 @@ const breadcrumbSchema = {
         </section>
       )}
 
-      {isCounty && orphanCityFilterGroups.length > 0 && (
+      {/* Complete guide coverage for this county: every city (hub or not) and
+          every neighborhood, with all of their diet, cuisine and health-score
+          guides — server-rendered, nothing truncated. */}
+      {isCounty && (countyLinks.byCity.length > 0 || countyLinks.districtGroups.length > 0) && (
         <section aria-labelledby="more-guides-h">
-          <h2 id="more-guides-h">More guides by city</h2>
+          <h2 id="more-guides-h">All {displayName} County guides by city</h2>
           <ul class="link-list">
-            {orphanCityFilterGroups.map((g) => (
+            {countyLinks.byCity.map((g) => (
               <li>
-                <strong>{g.city}:</strong>{' '}
+                <strong>{g.hasHub ? <a href={`/${g.citySlug}/`}>{g.city}</a> : g.city}:</strong>{' '}
                 {g.pages.map((p, i) => (
                   <>
                     {i > 0 && ', '}
-                    <a href={`${p.url}/`}>{p.label}{p.kind === 'cuisine' ? ' restaurants' : ''}</a>
+                    <a href={p.url}>{p.label}</a>
                   </>
                 ))}
               </li>
             ))}
+            {countyLinks.districtGroups.map((d) => (
+              <li>
+                <strong><a href={d.url}>{d.name}</a>:</strong>{' '}
+                {d.pages.length === 0
+                  ? 'neighborhood guide'
+                  : d.pages.map((p, i) => (
+                      <>
+                        {i > 0 && ', '}
+                        <a href={p.url}>{p.label}</a>
+                      </>
+                    ))}
+              </li>
+            ))}
           </ul>
+          <p class="src"><a href="/guides/">Browse every guide on the site &rarr;</a></p>
+        </section>
+      )}
+
+      {/* City hub: parent county + sibling cities, so city hubs interlink. */}
+      {!isCounty && cityLinks && (cityLinks.county || cityLinks.siblings.length > 0) && (
+        <section aria-labelledby="nearby-h">
+          <h2 id="nearby-h">Nearby &amp; related guides</h2>
+          <ul class="link-list">
+            {cityLinks.county && (
+              <li><a href={cityLinks.county.url}>{cityLinks.county.label}</a> ({cityLinks.county.count})</li>
+            )}
+            {cityLinks.siblings.map((c) => (
+              <li><a href={c.url}>{c.label}</a> ({c.count})</li>
+            ))}
+          </ul>
+          <p class="src"><a href="/guides/">Browse every guide on the site &rarr;</a></p>
         </section>
       )}
 

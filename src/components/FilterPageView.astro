@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import RestaurantCard from './RestaurantCard.astro';
 import { cityHubSlugs, districtHubSlugs } from '../lib/data.js';
 import { cityFilters, countyFilters, districtFilters, sortFilters } from '../lib/manifest.js';
+import { comboHubLinks } from '../lib/hublinks.js';
 import { sortForHub } from '../lib/format.js';
 import { filterIntro } from '../lib/prose.js';
 import ListIntro from './ListIntro.astro';
@@ -65,6 +66,9 @@ const pageUrl = new URL(`${url}/`, Astro.site).href;
 const geoIndex =
   geoType === 'city' ? cityFilters : geoType === 'county' ? countyFilters : districtFilters;
 const siblings = sortFilters((geoIndex.get(geoSlug) || []).filter((p) => p.url !== url));
+// Parent city + county hubs, and any curated sibling guides for the same geo,
+// so every combo hub carries real inlinks up and across (see lib/hublinks.js).
+const parents = comboHubLinks({ geoType, geoSlug, currentUrl: url });
 
 /* ---------- JSON-LD: CollectionPage + ItemList + BreadcrumbList ---------- */
 const collectionSchema = {
@@ -150,7 +154,7 @@ const breadcrumbSchema = {
         </ul>
       </section>
 
-      {siblings.length > 0 && (
+      {(siblings.length > 0 || parents.curated.length > 0) && (
         <section aria-labelledby="related-h">
           <h2 id="related-h">Related guides in {geoDisplay}</h2>
           <ul class="link-list">
@@ -159,6 +163,9 @@ const breadcrumbSchema = {
                 <a href={`${p.url}/`}>{p.label}{p.kind === 'cuisine' ? ' restaurants' : ''}</a> ({p.items.length})
               </li>
             ))}
+            {parents.curated.map((p) => (
+              <li><a href={p.url}>{p.label}</a> ({p.count})</li>
+            ))}
           </ul>
         </section>
       )}
@@ -166,6 +173,10 @@ const breadcrumbSchema = {
       <nav class="hub-links" aria-label="Explore more">
         <strong>Explore more:</strong>
         <a href={hubUrl}>{hubText}</a>
+        {parents.city && parents.city.url !== hubUrl && <a href={parents.city.url}>{parents.city.label}</a>}
+        {parents.county && parents.county.url !== hubUrl && <a href={parents.county.url}>{parents.county.label}</a>}
+        {parents.district && parents.district.url !== hubUrl && <a href={parents.district.url}>{parents.district.label}</a>}
+        <a href="/guides/">All guides</a>
       </nav>
     </article>
   </main>

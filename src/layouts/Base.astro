@@ -491,6 +491,7 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
               {navDietary.map((p) => <a href={`${p.url}/`}>{p.label}</a>)}
             </div>
           </details>
+          <a class="navlink" href="/guides/">All guides</a>
           <a class="navlink" href="/data-sources/">Data</a>
         </nav>
       </div>
@@ -512,6 +513,7 @@ const navDietary = [...(countyFilters.get('orange') || [])].sort((a, b) => a.lab
         <div>
           <h4>About this data</h4>
           <ul class="footer-links">
+            <li><a href="/guides/">All guides</a></li>
             <li><a href="/methodology/">Methodology</a></li>
             <li><a href="/data-sources/">Data &amp; sources</a></li>
             <li><a href="/about/">About</a></li>

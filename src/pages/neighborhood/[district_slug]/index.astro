@@ -3,6 +3,7 @@ import Base from '../../../layouts/Base.astro';
 import RestaurantCard from '../../../components/RestaurantCard.astro';
 import { districts } from '../../../lib/data.js';
 import { districtFilters, sortFilters } from '../../../lib/manifest.js';
+import { districtHubLinks } from '../../../lib/hublinks.js';
 import { sortForHub } from '../../../lib/format.js';
 import { hubIntro } from '../../../lib/prose.js';
 import ListIntro from '../../../components/ListIntro.astro';
@@ -28,6 +29,8 @@ const pageUrl = new URL(`/neighborhood/${slug}/`, Astro.site).href;
 
 // Dietary filter pages available for this district (reverse links, no orphans).
 const ownFilters = sortFilters(districtFilters.get(slug) || []);
+// Parent county + sibling neighborhoods, so district hubs interlink (see lib/hublinks.js).
+const nearby = districtHubLinks(slug);
 
 const h1 = `Restaurants in ${name}`;
 // Data-driven intro, same engine as the county/city hubs — see lib/prose.js.
@@ -107,6 +110,21 @@ const breadcrumbSchema = {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {(nearby.county || nearby.siblings.length > 0) && (
+        <section aria-labelledby="nearby-h">
+          <h2 id="nearby-h">Nearby &amp; related guides</h2>
+          <ul class="link-list">
+            {nearby.county && (
+              <li><a href={nearby.county.url}>All {nearby.county.label} restaurants</a> ({nearby.county.count})</li>
+            )}
+            {nearby.siblings.map((d) => (
+              <li><a href={d.url}>{d.label}</a> ({d.count})</li>
+            ))}
+          </ul>
+          <p class="src"><a href="/guides/">Browse every guide on the site &rarr;</a></p>
         </section>
       )}
 
