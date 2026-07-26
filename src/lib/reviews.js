@@ -8,13 +8,9 @@
 // Returns null when the restaurant has no usable reviews, so the template
 // omits the section. Review text is rendered IN FULL — no excerpting.
 //
-// The template renders `visible` inline and `hidden` inside a <details>, so all
-// review text ships in the static HTML either way — the split is a fold, not a
-// filter, and View Source shows every review.
+// The template renders the whole list inline: no fold, no toggle, every
+// review visible in the static HTML.
 import reviewsByRestaurant from '../data/reviews_by_restaurant.json';
-
-// How many render above the fold before the "Show all N reviews" expander.
-const VISIBLE = 5;
 
 const validStars = (s) => Number.isInteger(s) && s >= 1 && s <= 5;
 
@@ -37,12 +33,10 @@ export function reviewInfo(licenseKey) {
 
   return {
     // Reviews we actually hold and render (not the scraped_count, which counts
-    // rows including any without text) — this is what the toggle label states.
+    // rows including any without text).
     total: items.length,
     count: Number.isFinite(e.scraped_count) ? e.scraped_count : items.length,
     avgStars: Number.isFinite(e.avg_stars_scraped) ? e.avg_stars_scraped : null,
     items,
-    visible: items.slice(0, VISIBLE),
-    hidden: items.slice(VISIBLE),
   };
 }

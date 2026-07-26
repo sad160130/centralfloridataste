@@ -397,53 +397,25 @@ const breadcrumbSchema = {
               </a>
             )}
           </div>
-          {/* Every review ships in the static HTML. The first few render
-              inline; the rest sit inside a <details> — collapsed, but present
-              in the DOM and in View Source, so nothing is hidden from
-              indexing. <details>/<summary> keeps the expander keyboard- and
-              screen-reader-operable with zero client JavaScript. */}
+          {/* Every review renders inline, newest first — no fold, no toggle.
+              All review text is plain static HTML, so View Source shows the
+              full set. */}
           {reviews && (
-            <>
-              <ul class="dr-list">
-                {reviews.visible.map((rv) => (
-                  <li class="dr-card">
-                    <div class="dr-meta">
-                      {rv.stars != null && (
-                        <span class="dr-stars" aria-label={`Rated ${rv.stars} out of 5 stars`}>
-                          <span aria-hidden="true">{'★'.repeat(rv.stars)}{'☆'.repeat(5 - rv.stars)}</span>
-                        </span>
-                      )}
-                      {rv.date && <span class="dr-date">{formatDate(rv.date) || rv.date}</span>}
-                    </div>
-                    <p class="dr-text">{rv.text}</p>
-                  </li>
-                ))}
-              </ul>
-
-              {reviews.hidden.length > 0 && (
-                <details class="dr-more">
-                  <summary>
-                    <span class="dr-more-open">Show all {reviews.total} reviews</span>
-                    <span class="dr-more-close">Show fewer reviews</span>
-                  </summary>
-                  <ul class="dr-list dr-list--rest">
-                    {reviews.hidden.map((rv) => (
-                      <li class="dr-card">
-                        <div class="dr-meta">
-                          {rv.stars != null && (
-                            <span class="dr-stars" aria-label={`Rated ${rv.stars} out of 5 stars`}>
-                              <span aria-hidden="true">{'★'.repeat(rv.stars)}{'☆'.repeat(5 - rv.stars)}</span>
-                            </span>
-                          )}
-                          {rv.date && <span class="dr-date">{formatDate(rv.date) || rv.date}</span>}
-                        </div>
-                        <p class="dr-text">{rv.text}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </>
+            <ul class="dr-list">
+              {reviews.items.map((rv) => (
+                <li class="dr-card">
+                  <div class="dr-meta">
+                    {rv.stars != null && (
+                      <span class="dr-stars" aria-label={`Rated ${rv.stars} out of 5 stars`}>
+                        <span aria-hidden="true">{'★'.repeat(rv.stars)}{'☆'.repeat(5 - rv.stars)}</span>
+                      </span>
+                    )}
+                    {rv.date && <span class="dr-date">{formatDate(rv.date) || rv.date}</span>}
+                  </div>
+                  <p class="dr-text">{rv.text}</p>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       )}
@@ -603,32 +575,6 @@ const breadcrumbSchema = {
     .dr-stars { font-family: var(--mono); font-size: 0.95rem; letter-spacing: 0.14em; color: var(--citrus); line-height: 1; }
     .dr-date { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
     .dr-text { margin: 0.55rem 0 0; color: var(--ink-2); font-size: 0.93rem; line-height: 1.55; }
-
-    /* "Show all N reviews" — native <details>, no client JS. The collapsed
-       reviews are in the DOM (and in View Source) the whole time. */
-    .dr-more { margin: 0.9rem 0 0; }
-    .dr-more > summary {
-      display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer;
-      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em;
-      text-transform: uppercase; font-weight: 600; color: var(--citrus-ink);
-      padding: 0.6rem 0.95rem; background: var(--surface);
-      border: 1px solid var(--line-strong); border-radius: 2px;
-      list-style: none; /* hide the default marker; we draw our own caret */
-    }
-    .dr-more > summary::-webkit-details-marker { display: none; }
-    .dr-more > summary::after {
-      content: '▾'; font-size: 0.8em; line-height: 1; transition: transform 0.15s ease;
-    }
-    .dr-more[open] > summary::after { transform: rotate(180deg); }
-    .dr-more > summary:hover { border-color: var(--citrus); }
-    .dr-more > summary:focus-visible { outline: 2px solid var(--citrus); outline-offset: 2px; }
-    .dr-more .dr-more-close { display: none; }
-    .dr-more[open] .dr-more-open { display: none; }
-    .dr-more[open] .dr-more-close { display: inline; }
-    ul.dr-list--rest { margin-top: 0.9rem; }
-    @media (prefers-reduced-motion: reduce) {
-      .dr-more > summary::after { transition: none; }
-    }
 
     /* overall composite score — transparent /100 breakdown, distinct from grade */
     .score-card { margin: 0.4rem 0 0; padding: 1.2rem 1.25rem; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px; }
