@@ -10,4 +10,7 @@ pilot-streetview/
 
 # restaurant photos are served from Vercel Blob; local copies are a byte cache only
 public/restaurant-photos/
-dist/restaurant-photos/
+
+# Built output — Vercel runs `astro build` and generates this on deploy,
+# so committing it only duplicated the source of truth.
+dist/
