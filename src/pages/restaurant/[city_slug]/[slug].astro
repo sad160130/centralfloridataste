@@ -6,9 +6,10 @@ import SaferNearby from '../../../components/SaferNearby.astro';
 import restaurants from '../../../data/restaurants.json';
 import { cityHubSlugs, districtHubSlugs } from '../../../lib/data.js';
 import { titleCase, formatDate, listJoin } from '../../../lib/format.js';
-import { listingProse } from '../../../lib/prose.js';
+import { listingProse, reviewSynthesis } from '../../../lib/prose.js';
 import { photoInfo } from '../../../lib/photos.js';
 import { reviewInfo } from '../../../lib/reviews.js';
+import reviewsByRestaurant from '../../../data/reviews_by_restaurant.json';
 import { compositeScore } from '../../../lib/score.js';
 import { healthGradeReview, healthGradeProperties } from '../../../lib/health-rating.js';
 import { restaurantCombos } from '../../../lib/hublinks.js';
@@ -32,6 +33,11 @@ const photo = photoInfo(r.license_key);
 // Scraped Google reviews (text/stars/date only — no reviewer PII in the source).
 // null when this restaurant has none, so the review excerpts are omitted.
 const reviews = reviewInfo(r.license_key);
+
+// Original, data-derived synthesis of THIS restaurant's review corpus, cross-
+// referenced against its DBPR record. Rendered ABOVE the verbatim quotes; null
+// (section omitted) below 4 reviews. See reviewSynthesis in lib/prose.js.
+const synthesis = reviewSynthesis(r, reviewsByRestaurant[String(r.license_key)]);
 
 /* ---------- derived display values ---------- */
 const cityDisplay = titleCase(r.city);
@@ -403,6 +409,17 @@ const breadcrumbSchema = {
               </a>
             )}
           </div>
+          {synthesis && (
+            <div class="dr-synth">
+              <h3 class="dr-synth-h">What diners say &mdash; our read</h3>
+              {synthesis.paragraphs.map((p) => <p>{p}</p>)}
+              <p class="dr-synth-note">
+                Our own analysis of {synthesis.reviewsAnalysed} reviews for this restaurant, set
+                against its Florida DBPR inspection record. <a href="/methodology/">How we calculate grades &rarr;</a>
+              </p>
+            </div>
+          )}
+
           {/* Every review renders inline, newest first — no fold, no toggle.
               All review text is plain static HTML, so View Source shows the
               full set. */}
@@ -583,6 +600,14 @@ const breadcrumbSchema = {
     .dr-stars { font-family: var(--mono); font-size: 0.95rem; letter-spacing: 0.14em; color: var(--citrus); line-height: 1; }
     .dr-date { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
     .dr-text { margin: 0.55rem 0 0; color: var(--ink-2); font-size: 0.93rem; line-height: 1.55; }
+
+    /* our own synthesis, above the verbatim quotes */
+    .dr-synth { margin: 1rem 0 0; padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--line-strong); border-left: 4px solid var(--ink); border-radius: 2px; }
+    .dr-synth-h { margin: 0 0 0.6rem; font-size: 0.72rem; font-family: var(--mono); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--citrus-ink); }
+    .dr-synth p { margin: 0 0 0.65rem; font-size: 0.95rem; line-height: 1.6; color: var(--ink-2); }
+    .dr-synth p:last-of-type { margin-bottom: 0; }
+    .dr-synth-note { font-family: var(--mono); font-size: 0.66rem !important; letter-spacing: 0.03em; line-height: 1.5 !important; color: var(--mute) !important; border-top: 1px solid var(--line); padding-top: 0.6rem; margin-top: 0.8rem !important; }
+    .dr-synth-note a { color: var(--citrus-ink); }
 
     /* overall composite score — transparent /100 breakdown, distinct from grade */
     .score-card { margin: 0.4rem 0 0; padding: 1.2rem 1.25rem; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px; }

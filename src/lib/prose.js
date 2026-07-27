@@ -658,3 +658,558 @@ export function siteHook(items) {
     text: `Weird but true: ${num(wedges.length)} Central Florida restaurants keep a 4.5-star rating or better while carrying a D or F health grade. Stars measure the meal; our grades measure the kitchen — and the two don't always agree.`,
   };
 }
+
+// ===========================================================================
+// REVIEW SYNTHESIS — original, data-derived analysis of a restaurant's own
+// review corpus, rendered ABOVE the verbatim quotes.
+//
+// Why it exists: the verbatim reviews are a median 64% of a listing page's
+// words, and that text is duplicated across Maps/Yelp/TripAdvisor/DoorDash.
+// This section adds page-unique content computed from THIS restaurant's
+// reviews, and cross-references it against the DBPR inspection record — a
+// comparison that exists nowhere else on the web.
+//
+// Rules it follows:
+//   * Never quotes review text. It reports measured properties of the corpus
+//     (counts, distributions, drift, theme frequency, theme-level ratings).
+//   * Every number traces to the data; nothing is asserted that wasn't measured.
+//   * Lead angle is chosen by a priority tree on the data, then phrasing rotates
+//     on independent per-slug seeds — same conventions as listingProse above.
+//   * Returns null below SYN_MIN_REVIEWS rather than emitting a stub.
+// ===========================================================================
+
+const SYN_MIN_REVIEWS = 4;
+
+const THEME_PATTERNS = {
+  service: /\b(service|staff|server|servers|waiter|waitress|employee|employees|cashier|manager|friendly|rude|attentive|polite|greeted)\b/i,
+  wait: /\b(wait|waited|waiting|slow|slowly|quick|quickly|fast|minutes|line|prompt|forever|took)\b/i,
+  portion: /\b(portion|portions|size|sizes|huge|generous|plenty|filling|tiny|skimpy|large|small)\b/i,
+  freshness: /\b(fresh|freshly|hot|cold|stale|warm|soggy|crispy|crisp|dry|frozen|undercooked|overcooked|raw|burnt)\b/i,
+  value: /\b(price|prices|pricey|expensive|cheap|worth|value|affordable|overpriced|deal|cost|costly)\b/i,
+  cleanliness: /\b(clean|cleanliness|dirty|filthy|sanitary|hygiene|gross|spotless|bathroom|restroom|sticky|roach|roaches|fly|flies)\b/i,
+};
+
+// Several ways to name each theme, so repeated angles don't repeat wording.
+const THEME_NOUNS = {
+  service: ['service', 'the staff', 'how guests are treated', 'front-of-house'],
+  wait: ['wait times', 'speed of service', 'how long an order takes', 'pacing'],
+  portion: ['portion size', 'how much food arrives', 'plate size', 'serving size'],
+  freshness: ['freshness and temperature', 'how food arrives', 'freshness', 'whether food comes out hot'],
+  value: ['price', 'value for money', 'what it costs', 'whether it is worth the money'],
+  cleanliness: ['cleanliness', 'the state of the room', 'how clean the place looks', 'tidiness'],
+};
+
+/** Measured properties of one restaurant's review corpus. */
+export function reviewSignals(entry) {
+  if (!entry || !Array.isArray(entry.reviews)) return null;
+  const rs = entry.reviews.filter((r) => r && typeof r.text === 'string' && r.text.trim());
+  const n = rs.length;
+  if (n < SYN_MIN_REVIEWS) return null;
+
+  const rated = rs.filter((r) => Number.isInteger(r.stars) && r.stars >= 1 && r.stars <= 5);
+  const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const r of rated) dist[r.stars]++;
+  const avg = rated.length ? rated.reduce((s, r) => s + r.stars, 0) / rated.length : null;
+  const pos = rated.filter((r) => r.stars >= 4).length;
+  const neg = rated.filter((r) => r.stars <= 2).length;
+  const mid = rated.length - pos - neg;
+
+  // Stored newest-first: compare the newest third against the oldest third.
+  const k = Math.max(2, Math.floor(rated.length / 3));
+  const recent = rated.slice(0, k);
+  const older = rated.slice(-k);
+  const recentAvg = recent.length ? recent.reduce((s, r) => s + r.stars, 0) / recent.length : null;
+  const olderAvg = older.length ? older.reduce((s, r) => s + r.stars, 0) / older.length : null;
+  const drift = recentAvg != null && olderAvg != null ? recentAvg - olderAvg : 0;
+
+  const themes = [];
+  for (const [name, re] of Object.entries(THEME_PATTERNS)) {
+    const hits = rs.filter((r) => re.test(r.text));
+    if (!hits.length) continue;
+    const hr = hits.filter((r) => Number.isInteger(r.stars));
+    themes.push({
+      name,
+      count: hits.length,
+      share: hits.length / n,
+      avg: hr.length ? hr.reduce((s, r) => s + r.stars, 0) / hr.length : null,
+    });
+  }
+  themes.sort((a, b) => b.share - a.share || a.name.localeCompare(b.name));
+
+  const polarized = rated.length >= 6 && (dist[5] + dist[1]) / rated.length >= 0.7 && dist[1] >= 2;
+
+  // Corpus time span, and which measured themes are notably ABSENT (a real
+  // signal: nobody here talks about price, say).
+  const dates = rs.map((r) => r.date).filter(Boolean).sort();
+  const span = dates.length ? { from: dates[0], to: dates[dates.length - 1] } : null;
+  const present = new Set(themes.map((t) => t.name));
+  const absent = Object.keys(THEME_PATTERNS).filter((k) => !present.has(k));
+  const modal = Object.entries(dist).sort((a, b) => b[1] - a[1])[0];
+
+  return { n, rated: rated.length, dist, avg, pos, neg, mid, recentAvg, olderAvg, drift, themes, polarized, span, absent, modal };
+}
+
+const themeNoun = (name, seed) => pick(THEME_NOUNS[name] || [name], seed);
+const synPct = (x) => Math.round(x * 100);
+const one = (x) => (Math.round(x * 10) / 10).toFixed(1);
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Priority tree: which true fact about this corpus deserves the opening line. */
+function synthAngle(r, s) {
+  const g = r.health_grade;
+  const bad = g === 'D' || g === 'F';
+  const good = g === 'A';
+  const clean = s.themes.find((t) => t.name === 'cleanliness');
+
+  if (clean && clean.share >= 0.15 && bad) return 'clean-contradict';
+  if (clean && clean.share >= 0.15 && good && clean.avg != null && clean.avg <= 3) return 'clean-doubt';
+  if (s.avg != null && s.avg >= 4.2 && bad) return 'wedge';
+  if (s.avg != null && s.avg <= 3.3 && good) return 'inverse-wedge';
+  if (Math.abs(s.drift) >= 0.8 && s.rated >= 8) return s.drift > 0 ? 'rising' : 'slipping';
+  if (s.polarized) return 'polarized';
+  if (s.themes[0] && s.themes[0].share >= 0.45) return 'theme-led';
+  if (s.avg != null && s.avg >= 4.3 && good) return 'aligned-strong';
+  if (s.avg != null && s.avg <= 3.6) return 'soft-consensus';
+  return 'mixed';
+}
+
+/**
+ * Original synthesis of a restaurant's reviews + DBPR record.
+ * Returns null when there isn't enough corpus to say anything real.
+ */
+export function reviewSynthesis(r, entry) {
+  const s = reviewSignals(entry);
+  if (!s) return null;
+
+  const slug = r.slug || r.license_key || '';
+  const sd = (tag) => seedOf(slug + '#syn#' + tag);
+  const angle = synthAngle(r, s);
+
+  const g = r.health_grade;
+  const score = Number.isFinite(r.health_score) ? r.health_score : null;
+  const gradeTxt = g && g !== 'NR' ? gradeArticle(g) : null;
+  const viol = violationParts(r);
+  const violTxt = viol.length ? listJoin(viol) : null;
+  const t0 = s.themes[0];
+  const t1 = s.themes[1];
+  const N = s.n;
+  const avg = s.avg != null ? one(s.avg) : null;
+  const cleanT = s.themes.find((t) => t.name === 'cleanliness');
+
+  /* ---------- 1. LEAD ---------- */
+  const L = [];
+  if (angle === 'clean-contradict') {
+    L.push(
+      'Cleanliness comes up in ' + synPct(cleanT.share) + '% of the ' + N + ' reviews here, and the inspection record backs the worry up.',
+      'Diners raise cleanliness often enough to notice — and on this one the state inspector agrees with them.',
+      'Read these ' + N + ' reviews next to the inspection report and they tell the same story from two directions.',
+      'The room gets mentioned a lot in these ' + N + ' reviews. So does it in the DBPR file.',
+      'Where diners and inspectors usually diverge, here they line up: both flag the same thing.',
+      'Something in these ' + N + ' reviews keeps circling back to the state of the place — and the grade explains why.'
+    );
+  } else if (angle === 'clean-doubt') {
+    L.push(
+      'A handful of these ' + N + ' reviews question how clean the place is, which the inspection record does not support.',
+      'Diners who mention cleanliness here rate it low, yet the kitchen graded ' + g + '.',
+      'On paper the kitchen passes; in the reviews, a few visitors were not convinced.',
+      'There is a gap here worth naming: reviewers who talk about cleanliness are harder on this place than the inspector was.',
+      'The inspection says one thing about this kitchen, and a minority of reviewers say another.',
+      'Not every diner trusts the room — though the last inspection found little to support that.'
+    );
+  } else if (angle === 'wedge') {
+    L.push(
+      'The crowd and the kitchen disagree here, and the gap is wide.',
+      avg + ' stars across ' + N + ' reviews, ' + gradeTxt + ' health grade — those two numbers are not describing the same visit.',
+      'Diners rate this place well. The inspector did not.',
+      'This is the pattern the site exists to surface: strong reviews, weak inspection.',
+      'Popularity and sanitation part ways on this listing.',
+      'Read the reviews alone and you would never guess the grade.'
+    );
+  } else if (angle === 'inverse-wedge') {
+    L.push(
+      'The kitchen grades better than the reviews do.',
+      cap(gradeTxt) + ' inspection result sits behind a review average of just ' + avg + '.',
+      'Complaints here are real, but they are mostly not about the kitchen.',
+      'Worth separating two things on this listing: how the food is received, and how the kitchen inspects.',
+      'The inspection record is the stronger half of this page.',
+      'Diners are harder on this place than the health inspector was.'
+    );
+  } else if (angle === 'rising') {
+    L.push(
+      'The newer reviews here read better than the older ones — ' + one(s.recentAvg) + ' against ' + one(s.olderAvg) + '.',
+      'Something changed. Recent visits score noticeably higher than earlier ones.',
+      'Sorted by date, these ' + N + ' reviews trend upward.',
+      'The trajectory matters more than the average on this listing.',
+      'Recent diners are rating this place better than the back catalogue suggests.',
+      'An average alone would undersell where this place is now.'
+    );
+  } else if (angle === 'slipping') {
+    L.push(
+      'The most recent reviews here are worse than the older ones — ' + one(s.recentAvg) + ' against ' + one(s.olderAvg) + '.',
+      'The direction of travel is downward across these ' + N + ' reviews.',
+      'Sorted newest-first, the ratings decline as you read up.',
+      'Recent visits are landing softer than earlier ones did.',
+      'The headline average flatters this listing; the recent half does not.',
+      'Whatever the overall score says, the last stretch of reviews is the weaker one.'
+    );
+  } else if (angle === 'polarized') {
+    L.push(
+      'Reviews here split hard: ' + s.dist[5] + ' five-star against ' + s.dist[1] + ' one-star, with little in between.',
+      'There is no middle ground in these ' + N + ' reviews.',
+      'People either love this place or they do not, and the ratings show it.',
+      'The ' + avg + '-star average is misleading — almost nobody actually rated it that.',
+      "This listing's ratings cluster at the two ends of the scale.",
+      'An average is a poor summary when the underlying reviews look like this.'
+    );
+  } else if (angle === 'theme-led') {
+    const nounA = themeNoun(t0.name, sd('n0'));
+    L.push(
+      cap(nounA) + ' dominates the conversation here — it comes up in ' + synPct(t0.share) + '% of the ' + N + ' reviews.',
+      'One subject runs through these ' + N + ' reviews more than any other: ' + nounA + '.',
+      'Diners writing about this place keep returning to ' + nounA + '.',
+      'If these ' + N + ' reviews agree on a topic, it is ' + nounA + '.',
+      synPct(t0.share) + '% of reviews here touch on ' + nounA + ', more than any other theme.',
+      'The recurring subject in this corpus is ' + nounA + ', not the food in general.'
+    );
+  } else if (angle === 'aligned-strong') {
+    L.push(
+      'Reviews and inspection point the same way here.',
+      avg + ' stars across ' + N + ' reviews, ' + gradeTxt + ' on the inspection — a rare case where both halves agree.',
+      'Little tension on this listing: diners rate it well and the kitchen graded well.',
+      'The crowd and the inspector reached the same conclusion.',
+      'Both measures on this page are strong, which is less common than it sounds.',
+      'This is what agreement looks like: high ratings, clean inspection.'
+    );
+  } else if (angle === 'soft-consensus') {
+    L.push(
+      'The reviews here settle around ' + avg + ' stars, without much argument in either direction.',
+      'No strong feelings in these ' + N + ' reviews — the ratings sit low and steady.',
+      'Consensus here is lukewarm rather than hostile.',
+      'These ' + N + ' reviews are more disappointed than angry.',
+      'The tone across this corpus is muted.',
+      'Nothing in these ' + N + ' reviews is emphatic, which is its own kind of verdict.'
+    );
+  } else {
+    L.push(
+      'Across ' + N + ' reviews, opinion here is genuinely mixed.',
+      'These ' + N + ' reviews do not converge on a single verdict.',
+      'Read together, this corpus is a split decision.',
+      avg + ' stars from ' + N + ' reviews, with the reasoning pulling in different directions.',
+      'The reviews here disagree with each other more than they disagree with the grade.',
+      'No clear consensus emerges from these ' + N + ' reviews.'
+    );
+  }
+  const lead = pick(L, sd('lead'));
+
+  /* ---------- 2. THEME BODY ---------- */
+  const body = [];
+  if (t0 && t0.avg != null) {
+    const n0 = themeNoun(t0.name, sd('tn0'));
+    const verdict0 = t0.avg >= 4 ? 'positive' : t0.avg <= 2.8 ? 'negative' : 'mixed';
+    const T = [];
+    if (verdict0 === 'positive') {
+      T.push(
+        'Reviewers who mention ' + n0 + ' rate this place ' + one(t0.avg) + ' on average — it is working in the restaurant’s favour.',
+        'Where ' + n0 + ' comes up, the rating that follows averages ' + one(t0.avg) + ', so it reads as a strength.',
+        cap(n0) + ' tends to be raised approvingly here, averaging ' + one(t0.avg) + ' stars.'
+      );
+    } else if (verdict0 === 'negative') {
+      T.push(
+        'Reviews that raise ' + n0 + ' average just ' + one(t0.avg) + ' stars — this is where the complaints concentrate.',
+        cap(n0) + ' is the sore point: those reviews average ' + one(t0.avg) + '.',
+        'When ' + n0 + ' comes up here it is usually a criticism, and the ratings attached average ' + one(t0.avg) + '.'
+      );
+    } else {
+      T.push(
+        'Reviews mentioning ' + n0 + ' average ' + one(t0.avg) + ' stars, so it divides opinion rather than settling it.',
+        cap(n0) + ' cuts both ways here, averaging ' + one(t0.avg) + ' among the reviews that raise it.',
+        'Opinion on ' + n0 + ' is split — those reviews land at ' + one(t0.avg) + ' on average.'
+      );
+    }
+    body.push(pick(T, sd('t0')));
+  }
+  if (t1 && t1.share >= 0.2) {
+    const n1 = themeNoun(t1.name, sd('tn1'));
+    const avgFrag = t1.avg != null ? one(t1.avg) : null;
+    const S = [
+      cap(n1) + ' is the next most common subject, in ' + synPct(t1.share) + '% of reviews' + (avgFrag ? ' (averaging ' + avgFrag + ')' : '') + '.',
+      'After that, ' + n1 + ' appears most often — ' + synPct(t1.share) + '% of the corpus' + (avgFrag ? ', averaging ' + avgFrag : '') + '.',
+      cap(n1) + ' follows at ' + synPct(t1.share) + '% of reviews' + (avgFrag ? ', where ratings average ' + avgFrag : '') + '.',
+    ];
+    body.push(pick(S, sd('t1')));
+  }
+
+  /* ---------- 3. DISTRIBUTION / RECENCY SHAPE ---------- */
+  const D = [];
+  if (s.rated >= 4) {
+    D.push(
+      'Of the ' + s.rated + ' rated reviews, ' + s.pos + ' sit at four stars or better and ' + s.neg + ' at two or below.',
+      'The split is ' + s.pos + ' positive to ' + s.neg + ' negative across ' + s.rated + ' rated reviews' + (s.mid ? ', with ' + s.mid + ' in the middle' : '') + '.',
+      s.pos + ' of ' + s.rated + ' rated reviews are four stars or higher; ' + s.neg + ' are two or lower.'
+    );
+    if (Math.abs(s.drift) >= 0.4 && angle !== 'rising' && angle !== 'slipping') {
+      D.push(
+        (s.drift > 0 ? 'Newer' : 'Older') + ' reviews score better than ' + (s.drift > 0 ? 'older' : 'newer') +
+        ' ones (' + one(s.recentAvg) + ' recent against ' + one(s.olderAvg) + ' earlier), so direction is worth weighing alongside the average.'
+      );
+    }
+  }
+  const shape = D.length ? pick(D, sd('shape')) : null;
+
+  /* ---------- 4. DBPR CROSS-REFERENCE — the part that exists nowhere else ---------- */
+  const X = [];
+  const gradeClause = score != null ? gradeArticle(g) + ' (' + score + '/100)' : gradeTxt;
+  if (g && g !== 'NR') {
+    if (g === 'D' || g === 'F') {
+      X.push(
+        'None of that is visible in a star rating: the most recent DBPR inspection graded this kitchen ' + gradeClause + (violTxt ? ', citing ' + violTxt + ' violations' : '') + '. Diner sentiment and inspection result are measuring different things here, and only one of them is checked by the state.',
+        'The inspection record is the harder read. DBPR graded this kitchen ' + gradeClause + (violTxt ? ' on ' + violTxt + ' violations' : '') + ' — a verdict the review average does not reflect.',
+        "Set against that, the state's own inspection graded the kitchen " + gradeClause + (violTxt ? ', with ' + violTxt + ' violations recorded' : '') + '. Reviews describe the meal; the grade describes the conditions it was made in.'
+      );
+      if (cleanT && cleanT.share >= 0.1) {
+        X.push(
+          'Notably, ' + synPct(cleanT.share) + '% of reviews here already touch on cleanliness — and the inspection agrees, grading the kitchen ' + gradeClause + (violTxt ? ' on ' + violTxt + ' violations' : '') + '. Diners were picking up on something real.'
+        );
+      }
+    } else if (g === 'A') {
+      X.push(
+        'On the inspection side the picture is cleaner: DBPR graded this kitchen ' + gradeClause + (violTxt ? ', with ' + violTxt + ' violations' : ' with no violations cited') + '. Whatever the reviews argue about, sanitation is not the weak point.',
+        'The health record runs ahead of the reviews. The last DBPR inspection returned ' + gradeClause + (violTxt ? ' with ' + violTxt + ' violations' : ' and no violations cited') + '.',
+        'Against that, the kitchen inspects well — ' + gradeClause + (violTxt ? ', ' + violTxt + ' violations' : ', nothing cited') + ' at the most recent DBPR visit.'
+      );
+      if (cleanT && cleanT.avg != null && cleanT.avg <= 3 && cleanT.share >= 0.1) {
+        X.push(
+          'That matters because ' + synPct(cleanT.share) + '% of reviews raise cleanliness and rate it ' + one(cleanT.avg) + ' on average — a complaint the inspection record does not support, since DBPR graded the kitchen ' + gradeClause + '.'
+        );
+      }
+    } else {
+      X.push(
+        'The inspection lands in between as well: DBPR graded this kitchen ' + gradeClause + (violTxt ? ', citing ' + violTxt + ' violations' : '') + '.',
+        'On the health side, the most recent DBPR inspection returned ' + gradeClause + (violTxt ? ' with ' + violTxt + ' violations' : '') + ' — middling, much like the reviews.',
+        'The kitchen graded ' + gradeClause + (violTxt ? ' on ' + violTxt + ' violations' : '') + ' at its last inspection, which is roughly where the reviews sit too.'
+      );
+    }
+  } else {
+    X.push(
+      'There is no current health grade to weigh this against — the kitchen has no recent scoreable DBPR inspection on file, so the reviews stand alone here.',
+      'Unusually, there is no inspection grade to set beside this. Without a recent scoreable DBPR record we do not assign one, so the review corpus is all there is.'
+    );
+  }
+  const cross = pick(X, sd('cross'));
+
+  /* ---------- 5. CLOSE ---------- */
+  const C = [
+    'The individual reviews are below, newest first, if you want the raw material.',
+    'Full reviews follow below in the order they were left.',
+    'Everything above is computed from the ' + N + ' reviews reproduced below.',
+    'The reviews themselves follow, unedited and newest first.',
+    'Read the originals below and judge the pattern yourself.',
+    'The underlying reviews are reproduced in full underneath.',
+  ];
+  const close = pick(C, sd('close'));
+
+  /* ---------- 3b. CORPUS SHAPE: modal rating, span, notable absence ---------- */
+  const pool = [];
+  // Skip the modal line when every rating is identical — it just restates the
+  // positive/negative split sentence that precedes it.
+  const spread = Object.values(s.dist).filter((c) => c > 0).length;
+  if (s.modal && s.rated >= 5 && spread >= 2) {
+    const [mStar, mCount] = s.modal;
+    const st = String(mStar) === '1' ? '1 star' : mStar + ' stars';
+    const M = [
+      'The single most common rating left here is ' + st + ' (' + mCount + ' of ' + s.rated + ').',
+      cap(st) + ' is the modal score, given by ' + mCount + ' of the ' + s.rated + ' reviewers who rated.',
+      'More reviewers landed on ' + st + ' than any other score — ' + mCount + ' of ' + s.rated + '.',
+      'If you had to pick one number to represent this corpus it would be ' + mStar + ', the most frequently given rating (' + mCount + ' reviews).',
+    ];
+    pool.push({ key: 'modal', text: pick(M, sd('modal')) });
+  }
+  if (s.span && s.span.from.slice(0, 4) !== s.span.to.slice(0, 4)) {
+    const from = formatMonthYear(s.span.from), to = formatMonthYear(s.span.to);
+    if (from && to) {
+      const R = [
+        'These reviews span ' + from + ' to ' + to + ', so they cover more than one stretch of this kitchen’s history.',
+        'The corpus runs from ' + from + ' through ' + to + ' — not a single moment in time.',
+        'Coverage here reaches back to ' + from + ' and forward to ' + to + '.',
+        'Dates on these reviews range from ' + from + ' to ' + to + '.',
+      ];
+      pool.push({ key: 'span', text: pick(R, sd('span')) });
+    }
+  }
+  const t2 = s.themes[2];
+  if (t2 && t2.share >= 0.15) {
+    const n2 = themeNoun(t2.name, sd('tn2'));
+    const A2 = [
+      cap(n2) + ' shows up in ' + synPct(t2.share) + '% of reviews as well' + (t2.avg != null ? ', averaging ' + one(t2.avg) : '') + '.',
+      'A third strand, ' + n2 + ', appears in ' + synPct(t2.share) + '% of them' + (t2.avg != null ? ' at ' + one(t2.avg) + ' stars' : '') + '.',
+      'Behind those, ' + n2 + ' is raised in ' + synPct(t2.share) + '% of reviews' + (t2.avg != null ? ' (' + one(t2.avg) + ' average)' : '') + '.',
+    ];
+    pool.push({ key: 'theme3', text: pick(A2, sd('t2')) });
+  } else if (s.absent && s.absent.length) {
+    const missing = themeNoun(s.absent[0], sd('abs'));
+    const A3 = [
+      'What nobody raises here is ' + missing + ' — it goes unmentioned across all ' + N + ' reviews.',
+      'Conspicuously absent: ' + missing + ', which no reviewer brings up.',
+      'No one in this corpus comments on ' + missing + ' at all.',
+      'One subject never comes up here: ' + missing + '.',
+    ];
+    pool.push({ key: 'absent', text: pick(A3, sd('absent')) });
+  }
+
+  /* ---------- 3c. ORDER + COUNT ROTATION ----------
+     The statistical blocks used to emit in a fixed sequence (split, then modal,
+     then span, then third theme). Rotating only the wording still left a
+     detectable rhythm across pages, so the ORDER and the NUMBER of blocks now
+     rotate too, on their own per-slug seeds. Deterministic — reproducible builds.
+     Every block is written position-neutral, so any order reads correctly. */
+  if (shape) pool.unshift({ key: 'split', text: shape });
+
+  // Deterministic Fisher-Yates (LCG seeded from the slug) — no Math.random.
+  const shuffled = (() => {
+    const a = pool.slice();
+    let st = sd('order') >>> 0;
+    const nxt = () => ((st = (Math.imul(st, 1103515245) + 12345) >>> 0) / 4294967296);
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(nxt() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  })();
+
+  // Drop 0 or 1 block when there are enough to spare, so not every page runs
+  // the full set. Floor of 2 keeps the section from thinning below ~150 words.
+  const avail = shuffled.length;
+  const drop = avail >= 4 ? sd('drop') % 2 : 0;
+  const chosen = shuffled.slice(0, Math.max(2, avail - drop));
+  const blockOrder = chosen.map((b) => b.key).join('>');
+  const extra = chosen.map((b) => b.text);
+
+  /* ---------- 4b. INSPECTION CONTEXT: trend, recency, percentile ---------- */
+  const ctx = [];
+  const insDate = r.latest_inspection_date ? formatDate(r.latest_inspection_date) : null;
+  if (insDate) {
+    const I = [
+      'That inspection was on ' + insDate + '.',
+      'The visit behind that grade was ' + insDate + '.',
+      'DBPR last walked in on ' + insDate + '.',
+      'That result dates from ' + insDate + '.',
+    ];
+    ctx.push(pick(I, sd('insdate')));
+  }
+  if (r.inspection_trend === 'improving' || r.inspection_trend === 'declining') {
+    const up = r.inspection_trend === 'improving';
+    const TR = [
+      'Across its inspection history the kitchen is ' + (up ? 'improving' : 'declining') + ', which ' + (up ? 'argues for giving it the benefit of the doubt' : 'argues for reading the older reviews with caution') + '.',
+      'Its inspection trajectory is ' + (up ? 'upward' : 'downward') + ' over the records we hold.',
+      'The trend across inspections is ' + (up ? 'improvement' : 'decline') + '.',
+    ];
+    ctx.push(pick(TR, sd('trend')));
+  }
+  if (Number.isFinite(r.health_percentile) && r.county) {
+    const P = [
+      'On health score it sits safer than ' + Math.round(r.health_percentile) + '% of the ' + r.county + ' County restaurants we grade.',
+      'That puts it ahead of ' + Math.round(r.health_percentile) + '% of graded kitchens in ' + r.county + ' County.',
+      'Ranked against ' + r.county + ' County, it is safer than ' + Math.round(r.health_percentile) + '% of the restaurants we score.',
+    ];
+    ctx.push(pick(P, sd('pctile')));
+  }
+
+  /* ---------- 4c. VERDICT: what the two signals together mean ---------- */
+  // The synthesis a diner actually wants: reviews and inspection measure
+  // different things, so say which one carries here and why.
+  const V = [];
+  const goodG = g === 'A' || g === 'B';
+  const badG = g === 'D' || g === 'F';
+  const goodR = s.avg != null && s.avg >= 4;
+  const poorR = s.avg != null && s.avg <= 3.4;
+  const worstTheme = s.themes.filter((t) => t.avg != null).sort((a, b) => a.avg - b.avg)[0];
+  const wtNoun = worstTheme ? themeNoun(worstTheme.name, sd('wt')) : null;
+
+  if (badG && goodR) {
+    V.push(
+      'The practical read: people enjoy eating here, and the kitchen still failed its last inspection. Those are separate claims, and only the second one gets checked by anybody.',
+      'Taken together, this is a place diners like and inspectors do not. A good meal and a clean kitchen are different questions.',
+      'What to do with that is a judgement call — the reviews describe the experience, the grade describes the conditions behind it.'
+    );
+  } else if (badG && !goodR) {
+    V.push(
+      'Both halves of this page point the same unflattering way, which at least makes it simple.',
+      'There is no tension to resolve here: reviewers and the inspector reached similar conclusions.',
+      'When the crowd and the inspection agree this closely, the signal is worth taking at face value.'
+    );
+  } else if (goodG && poorR) {
+    V.push(
+      'Worth separating: the complaints above cluster on ' + (wtNoun || 'the experience') + ', not on the kitchen, which inspected well.',
+      'The weak part of this listing is the experience, not the sanitation — those are different failures.',
+      'If ' + (wtNoun || 'service') + ' is what you care about, the reviews are the better guide here; if it is the kitchen, the grade is.'
+    );
+  } else if (goodG && goodR) {
+    V.push(
+      'Both measures agree, which is the least complicated version of this page.',
+      'Nothing here pulls in opposite directions — an unusually clean read.',
+      'With both signals pointing the same way, there is little to argue about on this listing.'
+    );
+  } else {
+    V.push(
+      'Neither signal is decisive on its own here, which is why both are shown.',
+      'This is a listing where the two measures each tell half the story.',
+      'The honest summary is that the evidence is mixed on both sides.'
+    );
+  }
+  const verdict = pick(V, sd('verdict'));
+
+  /* ---------- 4d. blocks that fire on THIN corpora, so short review sets still
+     get a full reading rather than a two-line stub ---------- */
+  const thin = [];
+  if (N < 12) {
+    const SS = [
+      'Worth stating plainly: ' + N + ' reviews is a small sample, so treat the percentages above as indicative rather than settled.',
+      'This is a thin corpus — ' + N + ' reviews — and a couple of strong opinions move the average a long way.',
+      'With only ' + N + ' reviews on file, individual visits carry a lot of weight in every figure above.',
+      'Read the numbers above with the sample size in mind: ' + N + ' reviews is not many.',
+    ];
+    thin.push(pick(SS, sd('thin')));
+  }
+  // Name the actual cited violations — the most concrete DBPR detail available,
+  // and something no review aggregator carries.
+  const latestViol = Array.isArray(r.inspection_history) && r.inspection_history[0] && Array.isArray(r.inspection_history[0].violations)
+    ? r.inspection_history[0].violations
+    : [];
+  if (latestViol.length) {
+      // DBPR descriptions are regulatory strings with internal colons and
+      // semicolons ("cross-contamination: raw foods separated; food protected
+      // during prep/storage"). Keep the first clause only, or drop it — a
+      // half-parsed citation reads worse than none.
+      const clean1 = (d) => {
+        let t = String(d || '').split(';')[0].split(':')[0].trim().toLowerCase().replace(/\.$/, '');
+        return t.length >= 8 && t.length <= 58 ? t : null;
+      };
+      const top = latestViol.slice(0, 3).map((v) => clean1(v.description)).filter(Boolean).slice(0, 2);
+    if (top.length) {
+      const VD = [
+        'For specifics, the last inspection cited ' + listJoin(top) + '.',
+        'The citations behind that grade include ' + listJoin(top) + '.',
+        'What the inspector actually wrote up: ' + listJoin(top) + '.',
+        'Among the items recorded were ' + listJoin(top) + '.',
+      ];
+      thin.push(pick(VD, sd('violdetail')));
+    }
+  } else if (g && g !== 'NR') {
+    const NV = [
+      'No violations were recorded at that visit, which is the cleanest result available.',
+      'The inspector left without citing anything — worth noting, since most visits find something.',
+      'Nothing was written up at that inspection at all.',
+    ];
+    thin.push(pick(NV, sd('noviol')));
+  }
+
+  const paragraphs = [
+    tidy([lead].concat(body).join(' ')),
+    tidy(extra.filter(Boolean).join(' ')),
+    tidy([cross].concat(ctx).concat(thin).join(' ')),
+    tidy(verdict + ' ' + close),
+  ].filter(Boolean);
+
+  const wordCount = paragraphs.join(' ').split(/\s+/).filter(Boolean).length;
+  return { angle, blockOrder, paragraphs, wordCount, reviewsAnalysed: N };
+}
