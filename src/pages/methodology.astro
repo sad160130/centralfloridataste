@@ -2,8 +2,101 @@
 import Base from '../layouts/Base.astro';
 import { phase1 } from '../lib/data.js';
 import { siteStats } from '../lib/prose.js';
+import { allTiers, emergencyStats, coverage } from '../lib/violations.js';
 
 const s = siteStats(phase1);
+
+// Additive Q&A block below. Figures use the same published scope as every other
+// page, so the answers reconcile with the county and violation pages.
+const tiers = allTiers();
+const em = emergencyStats();
+const cov = coverage();
+const totalInspections = phase1.reduce((n, r) => n + (r.inspection_history || []).length, 0);
+const multiVisit = phase1.filter((r) => (r.inspection_history || []).length > 1).length;
+const callbacks = phase1.reduce(
+  (n, r) => n + (r.inspection_history || []).filter((h) => /call ?back/i.test(h.disposition || '')).length,
+  0
+);
+const hpTier = tiers.find((t) => t.slug === 'high-priority');
+const bRows = phase1.filter((r) => r.health_grade === 'B');
+const bGrade = bRows.length;
+const bClean = bRows.filter((r) => (r.hp_violations || 0) === 0).length;
+const bMaxHp = bRows.reduce((m, r) => Math.max(m, r.hp_violations || 0), 0);
+const avgVisits = (totalInspections / cov.published).toFixed(1);
+
+const qa = [
+  {
+    id: 'why-no-grades',
+    q: 'Why does Florida not grade restaurants?',
+    a: 'Because Florida law never created a grading scheme \u2014 the state publishes the full inspection report instead of reducing it to a letter.',
+    more:
+      'DBPR inspectors record every violation they find and publish the report, but no statute directs them to turn that into a grade or score the way Los Angeles County and New York City do. The reports are public in full; what is missing is the summary. That gap is the reason this site exists, and it is why every grade here is labelled as ours rather than the state\u2019s.',
+  },
+  {
+    id: 'who-inspects',
+    q: 'Who inspects restaurants in Florida?',
+    a: 'The Department of Business and Professional Regulation \u2014 DBPR \u2014 through its Division of Hotels and Restaurants.',
+    more:
+      'DBPR covers restaurants, bars, food trucks, caterers and hotel kitchens. It does not cover everything that serves food: school cafeterias, hospitals, nursing homes and grocery-store delis fall to the Department of Health or the Department of Agriculture instead. Every record on this site comes from DBPR, so a kitchen inspected by another agency will not appear here.',
+  },
+  {
+    id: 'public-record',
+    q: 'Are restaurant inspections public record in Florida?',
+    a: 'Yes. Every completed inspection is a public record under Florida\u2019s public records law, free to anyone who asks.',
+    more:
+      'DBPR publishes them itself and the underlying data can be downloaded in bulk. Nothing here is privileged or purchased: we take the same public extract anyone can, and what we add is putting it in one place and scoring it consistently. This site currently holds ' +
+      totalInspections.toLocaleString('en-US') + ' inspection records covering ' +
+      cov.published.toLocaleString('en-US') + ' restaurants.',
+  },
+  {
+    id: 'how-often',
+    q: 'How often does Florida inspect restaurants?',
+    a: 'Most restaurants are inspected one to four times a year, with higher-risk kitchens visited more often.',
+    more:
+      'Frequency is set by the food an operation handles and its risk category, and any complaint can trigger an extra unannounced visit. In our records ' +
+      multiVisit.toLocaleString('en-US') + ' of ' + cov.published.toLocaleString('en-US') +
+      ' restaurants have more than one inspection on file, averaging ' + avgVisits + ' visits each.',
+  },
+  {
+    id: 'how-many-violations',
+    q: 'How many violations before a restaurant is closed?',
+    a: 'There is no threshold \u2014 closure depends on what the inspector finds, not on how many violations are counted.',
+    more:
+      'A restaurant can carry a dozen basic violations and stay open, while a single unresolved hazard \u2014 no running water, a sewage backup, live pests \u2014 can close one the same day. Across the ' +
+      cov.published.toLocaleString('en-US') + ' restaurants we publish, inspectors recorded ' +
+      hpTier.total.toLocaleString('en-US') + ' high-priority violations in total, and ' + em.total +
+      ' restaurants have an emergency order on record.',
+  },
+  {
+    id: 'reopen',
+    q: 'Can a restaurant reopen after being closed?',
+    a: 'Yes. The suspension lifts once the problem is fixed and an inspector returns to confirm it.',
+    more:
+      'The restaurant corrects the fault, requests a re-inspection, and an inspector visits again. If the finding is resolved the disposition is recorded as Emergency Order Callback Complied and the restaurant reopens. ' +
+      em.complied + ' of the ' + em.total + ' emergency orders in our records ended that way.',
+  },
+  {
+    id: 'callback',
+    q: 'What is a callback inspection?',
+    a: 'A return visit whose only purpose is to check whether a problem found earlier has actually been fixed.',
+    more:
+      'A callback is not a routine inspection. It exists to close out a specific earlier finding, and its disposition records the outcome: complied, not complied, or a time extension. Our records contain ' +
+      callbacks.toLocaleString('en-US') +
+      ' callback inspections. A restaurant with several is not necessarily worse than average \u2014 it means earlier findings were followed up.',
+  },
+  {
+    id: 'b-grade',
+    q: 'Is a B grade restaurant safe?',
+    a: 'A B means the inspector found real problems but not many of the most serious kind \u2014 no B-grade restaurant we publish carried more than ' +
+      bMaxHp + ' high-priority violations.',
+    more:
+      'In our scale a B is 80 to 89 points, which is roughly two to three intermediate violations or a larger number of basic ones. Of the ' +
+      bGrade.toLocaleString('en-US') + ' B-grade restaurants we publish, ' + bClean.toLocaleString('en-US') +
+      ' had no high-priority violations at all at their most recent inspection \u2014 so the majority, ' +
+      (bGrade - bClean).toLocaleString('en-US') +
+      ', had at least one. A B is not a clean bill of health; it means the problems found were fewer or lighter than at a C. The grade is ours rather than the state\u2019s, and the violations behind it are listed on every restaurant page.',
+  },
+];
 const pageUrl = new URL('/methodology/', Astro.site).href;
 const orgId = `${new URL('/', Astro.site).href}#organization`;
 
@@ -27,13 +120,22 @@ const breadcrumbSchema = {
     { '@type': 'ListItem', position: 2, name: 'Methodology', item: pageUrl },
   ],
 };
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: qa.map((x) => ({
+    '@type': 'Question',
+    name: x.q,
+    acceptedAnswer: { '@type': 'Answer', text: x.a + ' ' + x.more },
+  })),
+};
 ---
 
 <Base title={seoTitle} description={seoDescription}>
   <script
     type="application/ld+json"
     slot="jsonld"
-    set:html={JSON.stringify([webPageSchema, breadcrumbSchema])}
+    set:html={JSON.stringify([webPageSchema, breadcrumbSchema, faqSchema])}
   />
 
   <main>
@@ -125,6 +227,47 @@ const breadcrumbSchema = {
         <a href="/data-sources/">Data &amp; sources</a>
         <a href="/about/">About this guide</a>
       </nav>
+
+      {/* Additive Q&A. Each question is its own H2 with a direct one-sentence
+          answer on the first line beneath it, then the supporting detail. */}
+      <section aria-labelledby="questions-h">
+        <h2 id="questions-h">Common questions about Florida restaurant inspections</h2>
+        <p>
+          Short answers first, detail underneath. Every figure below describes the
+          {' '}{cov.published.toLocaleString('en-US')} restaurants we publish of the
+          {' '}{cov.licensed.toLocaleString('en-US')} licensed food service establishments across the
+          {' '}{cov.counties} counties we cover.
+          {cov.nr > 0 && (
+            <>
+              {' '}{cov.nr}{' '}{cov.nr === 1 ? 'restaurant is' : 'restaurants are'} excluded from
+              grade percentages, having no recent scoreable inspection on file;{' '}
+              {cov.graded.toLocaleString('en-US')} are graded.
+            </>
+          )}
+        </p>
+      </section>
+
+      {qa.map((x) => (
+        <section aria-labelledby={x.id}>
+          <h2 id={x.id}>{x.q}</h2>
+          <p class="qa-direct">{x.a}</p>
+          <p>{x.more}</p>
+        </section>
+      ))}
+
+      <section aria-labelledby="viol-more-h">
+        <h2 id="viol-more-h">Violations explained in detail</h2>
+        <ul class="link-list">
+          <li><a href="/violations/">All violation types</a> &mdash; the three tiers and the most-cited codes</li>
+          {tiers.map((t) => (
+            <li><a href={`/violations/${t.slug}/`}>{t.title}</a> &mdash; {t.total.toLocaleString('en-US')} recorded, &minus;{t.penalty} {t.penalty === 1 ? 'point' : 'points'} each</li>
+          ))}
+          <li><a href="/violations/emergency-orders/">Emergency orders</a> &mdash; {em.total} restaurants with one on record</li>
+        </ul>
+      </section>
     </article>
   </main>
+  <style>
+    .qa-direct { font-size: 1.05rem; font-weight: 600; color: var(--ink); margin: 0 0 0.5rem; }
+  </style>
 </Base>

@@ -1,0 +1,185 @@
+---
+import Base from '../../layouts/Base.astro';
+import GradeAttribution from '../../components/GradeAttribution.astro';
+import { allTiers, rankedCodes, coverage, emergencyStats } from '../../lib/violations.js';
+
+const tiers = allTiers();
+const codes = rankedCodes(20);
+const cov = coverage();
+const em = emergencyStats();
+const grand = tiers.reduce((s, t) => s + t.total, 0);
+
+const pageUrl = new URL('/violations/', Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+const seoTitle = 'Florida Restaurant Inspection Violations Explained';
+const seoDescription =
+  `What Florida restaurant inspection violations mean, in plain English: the three ` +
+  `priority tiers, the ${codes.distinct} codes inspectors use, and how often each is cited.`;
+
+const faqs = [
+  {
+    q: 'What are the three types of restaurant inspection violation in Florida?',
+    a: 'High-priority, intermediate and basic. High-priority violations can cause foodborne illness directly. Intermediate violations remove a safeguard that would have prevented one. Basic violations are maintenance and housekeeping problems. Inspectors record all three at the same visit.',
+  },
+  {
+    q: 'How many violations does a typical Florida restaurant have?',
+    a: `Across the ${cov.published.toLocaleString('en-US')} restaurants we publish, the most recent inspections recorded ${grand.toLocaleString('en-US')} violations in total — ${tiers.find((t) => t.slug === 'basic').total.toLocaleString('en-US')} basic, ${tiers.find((t) => t.slug === 'intermediate').total.toLocaleString('en-US')} intermediate and ${tiers.find((t) => t.slug === 'high-priority').total.toLocaleString('en-US')} high-priority. Most restaurants carry several basic violations and no high-priority ones.`,
+  },
+  {
+    q: 'Does a violation mean a restaurant is unsafe?',
+    a: 'Not by itself. Basic violations are common and describe upkeep rather than danger. What matters is the tier and the number: a restaurant with several basic violations and no high-priority findings is in a different position from one with repeat high-priority violations.',
+  },
+];
+
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Florida restaurant inspection violations',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': orgId },
+};
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: 'Violations', item: pageUrl },
+  ],
+};
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script type="application/ld+json" slot="jsonld" set:html={JSON.stringify([collectionSchema, breadcrumbSchema, faqSchema])} />
+
+  <main>
+    <nav aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>Violations</span></nav>
+
+    <article>
+      <p class="eyebrow">Reference · Florida DBPR</p>
+      <h1>Florida Restaurant Inspection Violations Explained</h1>
+
+      <div class="statrow">
+        <div class="stat"><b>{grand.toLocaleString('en-US')}</b><span>Violations recorded</span></div>
+        <div class="stat"><b>{codes.distinct}</b><span>Violation codes</span></div>
+        <div class="stat"><b>3</b><span>Priority tiers</span></div>
+        <div class="stat"><b>{em.total}</b><span>Emergency orders</span></div>
+      </div>
+
+      <p class="lead">
+        A Florida inspector records every problem found during a visit and sorts each into one of
+        three tiers. The tier decides how much it matters. This page explains what each tier means
+        and which specific violations turn up most often across the restaurants we publish.
+      </p>
+
+      <p class="src">
+        Coverage: we publish inspection records for {cov.published.toLocaleString('en-US')} of the
+        {' '}{cov.licensed.toLocaleString('en-US')} licensed food service establishments across
+        {' '}{cov.counties} Central Florida counties. Every figure on this page describes the
+        {' '}{cov.published.toLocaleString('en-US')} we publish, not the full licensed roster.
+        {cov.nr > 0 && (
+          <>
+            {' '}{cov.nr}{' '}{cov.nr === 1 ? 'restaurant is' : 'restaurants are'} excluded from
+            grade percentages, having no recent scoreable inspection on file;{' '}
+            {cov.graded.toLocaleString('en-US')} are graded.
+          </>
+        )}
+      </p>
+
+      <GradeAttribution />
+
+      <section aria-labelledby="tiers-h">
+        <h2 id="tiers-h">The three violation tiers</h2>
+        <p>
+          Every violation an inspector records belongs to exactly one tier. The tier determines the
+          deduction in our calculated score.
+        </p>
+        <table class="vtable">
+          <thead>
+            <tr><th scope="col">Tier</th><th scope="col">Deduction</th><th scope="col">Recorded</th><th scope="col">Restaurants affected</th></tr>
+          </thead>
+          <tbody>
+            {tiers.map((t) => (
+              <tr>
+                <th scope="row"><a href={`/violations/${t.slug}/`}>{t.label}</a></th>
+                <td class="vt-num">&minus;{t.penalty} points each</td>
+                <td class="vt-num">{t.total.toLocaleString('en-US')}</td>
+                <td class="vt-num">{t.affected.toLocaleString('en-US')} ({t.pctAffected}%)</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <ul class="link-list vt-links">
+          {tiers.map((t) => (
+            <li><a href={`/violations/${t.slug}/`}>{t.title}</a> &mdash; what they are, how many, and where</li>
+          ))}
+          <li><a href="/violations/emergency-orders/">Emergency Orders</a> &mdash; when the state suspends a licence, and the {em.total} restaurants with one on record</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="codes-h">
+        <h2 id="codes-h">Most commonly cited violations</h2>
+        <p>
+          Ranked across every inspection on file for the restaurants we publish. The official DBPR
+          wording is given first, then what it means in practice.
+        </p>
+        <p class="src">
+          DBPR does not publish a priority tier per violation code in this dataset, so these are
+          ranked by frequency rather than sorted into the three tiers above.
+        </p>
+        <ol class="viols">
+          {codes.rows.map((v, i) => (
+            <li class="viol">
+              <p class="viol-head">
+                <span class="viol-rank">{i + 1}</span>
+                <span class="viol-code">Code {v.code}</span>
+                <span class="viol-count">{v.sites.toLocaleString('en-US')} restaurants ({v.pctSites}%) &middot; {v.count.toLocaleString('en-US')} citations</span>
+              </p>
+              <p class="viol-official">{v.official}</p>
+              {v.plain && <p class="viol-plain">{v.plain}</p>}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section aria-labelledby="more-h">
+        <h2 id="more-h">Related</h2>
+        <ul class="link-list">
+          <li><a href="/methodology/">How we calculate health grades</a> &mdash; the formula, and answers to common questions about Florida inspections</li>
+          <li><a href="/guides/">Every guide on the site</a></li>
+        </ul>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-h">
+        <h2 id="faq-h">Common questions about Florida inspection violations</h2>
+        <dl class="faq">{faqs.map((f) => (<><dt>{f.q}</dt><dd>{f.a}</dd></>))}</dl>
+      </section>
+    </article>
+  </main>
+
+  <style>
+    .src { font-size: 0.84rem; color: var(--mute); font-style: italic; margin: 0.5rem 0 0; }
+    table.vtable { width: 100%; max-width: 42rem; border-collapse: collapse; margin: 1rem 0 0; font-size: 0.92rem; }
+    table.vtable th, table.vtable td { text-align: left; padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--line); }
+    table.vtable thead th { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--mute); font-weight: 600; }
+    .vt-num { font-family: var(--mono); font-size: 0.86rem; }
+    .vt-links { margin-top: 1rem; }
+    ol.viols { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.7rem; }
+    .viol { padding: 0.8rem 1rem; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--citrus); border-radius: 2px; }
+    .viol-head { margin: 0; display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+    .viol-rank { font-family: var(--mono); font-weight: 700; color: var(--citrus-ink); }
+    .viol-code { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
+    .viol-count { font-family: var(--mono); font-size: 0.66rem; color: var(--mute); margin-left: auto; }
+    .viol-official { margin: 0.3rem 0 0; font-size: 0.93rem; color: var(--ink); font-weight: 600; }
+    .viol-plain { margin: 0.25rem 0 0; font-size: 0.9rem; line-height: 1.55; color: var(--ink-2); }
+    dl.faq { margin: 1rem 0 0; }
+    dl.faq dt { font-weight: 700; margin: 0.9rem 0 0.25rem; }
+    dl.faq dd { margin: 0; color: var(--ink-2); font-size: 0.95rem; line-height: 1.6; }
+  </style>
+</Base>

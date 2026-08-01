@@ -1,0 +1,193 @@
+---
+import Base from '../../layouts/Base.astro';
+import GradeAttribution from '../../components/GradeAttribution.astro';
+import { emergencyStats, coverage } from '../../lib/violations.js';
+
+const em = emergencyStats();
+const cov = coverage();
+
+const pageUrl = new URL('/violations/emergency-orders/', Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+const seoTitle = 'Florida Restaurant Emergency Closure Orders';
+const seoDescription = (
+  `What a Florida restaurant emergency order is and what happens next: ` +
+  `${em.total} restaurants we publish have one on record, listed by county with dates.`
+).slice(0, 155);
+
+const faqs = [
+  {
+    q: 'What is a restaurant emergency order in Florida?',
+    a: 'An emergency order suspends the establishment’s licence, which means it must stop serving food immediately. Florida issues one when an inspector finds conditions serious enough that continuing to operate would put customers at risk — no running water, a sewage backup, an active pest infestation, or no way to keep food at a safe temperature.',
+  },
+  {
+    q: 'Can a restaurant reopen after an emergency closure?',
+    a: 'Yes. The suspension lasts until the restaurant fixes the problem and an inspector returns to verify it. That return visit is a callback inspection, and a disposition of "Emergency Order Callback Complied" means the restaurant satisfied the inspector and was allowed to reopen.',
+  },
+  {
+    q: 'How common are emergency orders?',
+    a: `Rare. Of the ${cov.published.toLocaleString('en-US')} restaurants we publish, ${em.total} have an emergency order on record — ${Math.round((em.total / cov.published) * 1000) / 10}%. Most restaurants never receive one.`,
+  },
+  {
+    q: 'Does an emergency order mean the restaurant is closed now?',
+    a: 'Not necessarily. Our records show the order and the callback that followed it. Where the disposition reads "Callback Complied" the restaurant was cleared to reopen. Always check the restaurant’s own page for the most recent inspection we hold.',
+  },
+];
+
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Florida restaurant emergency closure orders',
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': orgId },
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: em.total,
+    itemListElement: em.byCounty.flatMap((c) => c.items).map((r, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`${r.url}/`, Astro.site).href,
+      name: r.name,
+    })),
+  },
+};
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: 'Violations', item: new URL('/violations/', Astro.site).href },
+    { '@type': 'ListItem', position: 3, name: 'Emergency Orders', item: pageUrl },
+  ],
+};
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script type="application/ld+json" slot="jsonld" set:html={JSON.stringify([collectionSchema, breadcrumbSchema, faqSchema])} />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo; <a href="/violations/">Violations</a> &rsaquo; <span>Emergency Orders</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">Enforcement · Florida DBPR</p>
+      <h1>Florida Restaurant Emergency Closure Orders</h1>
+
+      <div class="statrow">
+        <div class="stat"><b>{em.total}</b><span>Restaurants</span></div>
+        <div class="stat"><b>{em.complied}</b><span>Cleared on callback</span></div>
+        <div class="stat"><b>{em.byCounty.length}</b><span>Counties affected</span></div>
+        <div class="stat"><b>{Math.round((em.total / cov.published) * 1000) / 10}%</b><span>Of all published</span></div>
+      </div>
+
+      <p class="lead">
+        An emergency order is the most serious action Florida takes against a restaurant. It
+        suspends the licence, which means the restaurant must stop serving food that day. It is
+        not a fine or a warning — the kitchen closes until an inspector returns and confirms the
+        problem is fixed.
+      </p>
+      <p>
+        Inspectors reach for it when conditions make safe operation impossible rather than merely
+        risky: no running water, a sewage backup, an active pest infestation, or refrigeration that
+        cannot hold food at a safe temperature. Of the {em.total} restaurants below,
+        {' '}{em.complied} have a later callback recorded as complied, meaning an inspector returned
+        and cleared them to reopen.
+      </p>
+
+      <p class="src">
+        Coverage: we publish inspection records for {cov.published.toLocaleString('en-US')} of the
+        {' '}{cov.licensed.toLocaleString('en-US')} licensed food service establishments across
+        {' '}{cov.counties} Central Florida counties. Every figure on this page describes the
+        {' '}{cov.published.toLocaleString('en-US')} we publish, not the full licensed roster.
+      </p>
+
+      <GradeAttribution />
+
+      <section aria-labelledby="what-h">
+        <h2 id="what-h">What happens after an emergency order</h2>
+        <p>
+          The restaurant corrects the problem and requests a return visit. That visit is a callback
+          inspection, and its disposition is what tells you how the case ended. These are the
+          dispositions DBPR recorded across the {em.total} restaurants on this page.
+        </p>
+        <table class="vtable">
+          <thead><tr><th scope="col">Outcome recorded</th><th scope="col">Restaurants</th><th scope="col">What it means</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Callback complied</th><td class="vt-num">{em.complied}</td><td>An inspector returned, found the problem fixed, and the restaurant was cleared to reopen.</td></tr>
+            <tr><th scope="row">Callback time extension</th><td class="vt-num">{em.extension}</td><td>The restaurant was given more time to complete the fix before re-inspection.</td></tr>
+            <tr><th scope="row">Callback not complied</th><td class="vt-num">{em.notComplied}</td><td>The inspector returned and the problem had not been resolved.</td></tr>
+            <tr><th scope="row">Order recommended</th><td class="vt-num">{em.recommended}</td><td>An emergency order was recommended; no callback disposition appears in the records we hold.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      {em.byCounty.map((c) => (
+        <section aria-labelledby={`c-${c.slug}`}>
+          <h2 id={`c-${c.slug}`}>{c.name} County &mdash; {c.items.length} {c.items.length === 1 ? 'restaurant' : 'restaurants'}</h2>
+          <p>
+            {c.items.length} of the {c.countyTotal.toLocaleString('en-US')} {c.name} County
+            restaurants we publish have an emergency order on record, newest first. The date and
+            disposition are the ones DBPR recorded.
+          </p>
+          <ol class="faillist">
+            {c.items.map((r) => (
+              <li class="fail">
+                <p class="fail-head">
+                  <a class="fail-name" href={`${r.url}/`}>{r.name}</a>
+                  <span class="fail-city">{r.city}</span>
+                </p>
+                <p class="fail-meta">
+                  {r.dateText && <><strong>{r.dateText}</strong> &middot; </>}{r.disposition}
+                </p>
+                {r.score != null && <p class="fail-viol">Current grade {r.grade} ({r.score}/100)</p>}
+              </li>
+            ))}
+          </ol>
+          <p class="src">
+            <a href={`/${c.slug}-county/restaurant-inspections/`}>All {c.name} County inspection records &rarr;</a>
+          </p>
+        </section>
+      ))}
+
+      <section aria-labelledby="more-h">
+        <h2 id="more-h">Related</h2>
+        <ul class="link-list">
+          <li><a href="/violations/">All violation types explained</a></li>
+          <li><a href="/violations/high-priority/">High-priority violations</a> &mdash; the findings that most often precede an order</li>
+          <li><a href="/methodology/">How we calculate health grades</a></li>
+          <li><a href="/guides/">Every guide on the site</a></li>
+        </ul>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-h">
+        <h2 id="faq-h">Common questions about emergency closures</h2>
+        <dl class="faq">{faqs.map((f) => (<><dt>{f.q}</dt><dd>{f.a}</dd></>))}</dl>
+      </section>
+    </article>
+  </main>
+
+  <style>
+    .src { font-size: 0.84rem; color: var(--mute); font-style: italic; margin: 0.5rem 0 0; }
+    table.vtable { width: 100%; max-width: 46rem; border-collapse: collapse; margin: 1rem 0 0; font-size: 0.92rem; }
+    table.vtable th, table.vtable td { text-align: left; padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    table.vtable thead th { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--mute); font-weight: 600; }
+    .vt-num { font-family: var(--mono); font-size: 0.86rem; }
+    ol.faillist { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.7rem; }
+    .fail { padding: 0.8rem 1rem; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--gf-solid); border-radius: 2px; }
+    .fail-head { margin: 0; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .fail-name { font-weight: 700; color: var(--ink); }
+    .fail-city { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
+    .fail-meta { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--ink-2); }
+    .fail-viol { margin: 0.2rem 0 0; font-family: var(--mono); font-size: 0.72rem; color: var(--mute); }
+    dl.faq { margin: 1rem 0 0; }
+    dl.faq dt { font-weight: 700; margin: 0.9rem 0 0.25rem; }
+    dl.faq dd { margin: 0; color: var(--ink-2); font-size: 0.95rem; line-height: 1.6; }
+  </style>
+</Base>
