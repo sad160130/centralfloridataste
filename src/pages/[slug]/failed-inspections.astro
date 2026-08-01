@@ -119,9 +119,11 @@ const faqSchema = {
         establishments. Every figure on this page describes the {s.published.toLocaleString('en-US')}
         {' '}we publish, not the full licensed roster.
         {s.nr > 0 && (
-          <> {s.nr} {s.nr === 1 ? 'restaurant is' : 'restaurants are'} excluded from grade
-          percentages, having no recent scoreable inspection on file; {s.graded.toLocaleString('en-US')}
-          {' '}are graded.</>
+          <>
+            {' '}{s.nr}{' '}{s.nr === 1 ? 'restaurant is' : 'restaurants are'} excluded from grade
+            percentages, having no recent scoreable inspection on file;{' '}
+            {s.graded.toLocaleString('en-US')} are graded.
+          </>
         )}
       </p>
 
