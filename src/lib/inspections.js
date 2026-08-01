@@ -18,7 +18,7 @@ import { titleCase, formatDate } from './format.js';
 // DBPR writes violations as regulatory strings. These are our plain-English
 // readings of what each one actually means for a diner — the code and the
 // official wording are shown alongside, so nothing is obscured.
-const VIOLATION_PLAIN = {
+export const VIOLATION_PLAIN = {
   '36': 'Floors, walls or ceilings were dirty or in disrepair, or ventilation was inadequate — a housekeeping failure rather than a direct food risk.',
   '14': 'Equipment or work surfaces were damaged, worn or built in a way that cannot be properly cleaned.',
   '22': 'Surfaces that touch food were not clean and sanitised — one of the most direct routes to contamination.',

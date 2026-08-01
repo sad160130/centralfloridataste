@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { guidesTree } from '../lib/hublinks.js';
+import { countyFailureStats } from '../lib/failed-inspections.js';
 
 // Complete server-rendered index of every guide (hub) page on the site,
 // grouped county > city > type. Plain <a> links, no JS, nothing collapsed —
@@ -93,6 +94,9 @@ const breadcrumbSchema = {
             <h3>Inspection records</h3>
             <ul class="guide-links">
               <li><a href={`/${c.slug}-county/restaurant-inspections/`}>{c.name} County restaurant inspections</a></li>
+              {(countyFailureStats(c.slug)?.fCount ?? 0) >= 5 && (
+                <li><a href={`/${c.slug}-county/failed-inspections/`}>{c.name} County failed inspections</a></li>
+              )}
             </ul>
           </div>
 

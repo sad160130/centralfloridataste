@@ -1279,3 +1279,44 @@ export function inspectionsIntro(s) {
     violationLead: top ? tidy(pick(V, sd('viol'))) : null,
   };
 }
+
+// ===========================================================================
+// COUNTY FAILED-INSPECTIONS prose — /[county]-county/failed-inspections/.
+// Same conventions as the rest of this engine. Deliberately flat: these pages
+// name real businesses in a damaging context, so every sentence states a
+// counted DBPR fact and stops. No adjectives the record does not carry.
+// ===========================================================================
+export function failedIntro(s) {
+  const sd = (tag) => seedOf(`${s.slug}#fail#${tag}`);
+  const county = `${s.countyName} County`;
+  const f = num(s.fCount);
+  const d = num(s.dCount);
+  const e = num(s.emergencyCount);
+
+  const L = [];
+  if (s.emergencyCount > 0) {
+    L.push(
+      `${e} of the ${num(s.published)} ${county} restaurants we publish were placed under a state emergency order. A further ${f} currently hold an F.`,
+      `Florida ordered ${e} ${county} restaurants closed under an emergency order. ${f} more sit at an F grade without one.`,
+      `${county} has ${e} restaurants with an emergency order on record and ${f} at an F grade.`,
+      `Of ${num(s.published)} ${county} restaurants on this site, ${e} have been under a state emergency order and ${f} hold an F.`
+    );
+  } else {
+    L.push(
+      `${f} of the ${num(s.graded)} graded ${county} restaurants we publish hold an F. None is under a state emergency order.`,
+      `No ${county} restaurant we publish is currently under an emergency order. ${f} hold an F grade.`,
+      `${county} has ${f} restaurants at an F grade and no emergency orders on record.`
+    );
+  }
+
+  const S = [
+    `Adding the ${d} at a D, ${num(s.failing)} of ${num(s.graded)} graded restaurants — ${s.pctFailing}% — are below a C.`,
+    `${num(s.failing)} restaurants sit at D or F, ${s.pctFailing}% of everything we grade in the county.`,
+    `Counting D grades as well, ${s.pctFailing}% of graded ${county} restaurants fall below a C.`,
+  ];
+
+  return {
+    lead: tidy(pick(L, sd('lead'))),
+    support: tidy(pick(S, sd('support'))),
+  };
+}

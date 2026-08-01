@@ -6,6 +6,7 @@ import { countyFilters, cityFilters, sortFilters, specialByCity, specialByCounty
 import { countyHubLinks, cityHubLinks } from '../../lib/hublinks.js';
 import { titleCase, sortForHub } from '../../lib/format.js';
 import { hubIntro } from '../../lib/prose.js';
+import { countyFailureStats } from '../../lib/failed-inspections.js';
 import ListIntro from '../../components/ListIntro.astro';
 
 // County hubs (/[county_slug]-county/) and city hubs (/[city_slug]/) both live at
@@ -54,6 +55,9 @@ const ownFilters = sortFilters((isCounty ? countyFilters.get(slug) : cityFilters
    combo hub depends on being reachable only via the sitemap. A city hub links
    its own guides, its parent county and its sibling cities. */
 const countyLinks = isCounty ? countyHubLinks(slug) : null;
+// Failed-inspections page exists only where the county has >=5 published F grades.
+const failStats = isCounty ? countyFailureStats(slug) : null;
+const hasFailPage = !!failStats && failStats.fCount >= 5;
 const cityLinks = isCounty ? null : cityHubLinks(slug);
 
 // Health-score "special" pages for this area.
@@ -192,6 +196,12 @@ const breadcrumbSchema = {
               <a href={`/${slug}-county/restaurant-inspections/`}>{displayName} County restaurant inspections</a>
               {' '}&mdash; grade distribution, most-cited violations and recent enforcement actions
             </li>
+            {hasFailPage && (
+              <li>
+                <a href={`/${slug}-county/failed-inspections/`}>{displayName} County failed inspections</a>
+                {' '}&mdash; F and D grades, emergency orders and the violations behind them
+              </li>
+            )}
           </ul>
         </section>
       )}

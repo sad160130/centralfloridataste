@@ -1,0 +1,285 @@
+---
+import Base from '../../layouts/Base.astro';
+import GradeAttribution from '../../components/GradeAttribution.astro';
+import { allCountyFailures } from '../../lib/failed-inspections.js';
+import { specialByCounty } from '../../lib/manifest.js';
+import { failedIntro } from '../../lib/prose.js';
+
+// /[county_slug]-county/failed-inspections/ — counties with enough published
+// F-grade restaurants to make a page worth having. Below that threshold a page
+// would name two or three businesses and pad the rest, so it is not emitted.
+// The threshold is inlined: Astro hoists getStaticPaths out of component scope,
+// so a module-level const declared here is not visible inside it.
+export function getStaticPaths() {
+  return allCountyFailures()
+    .filter((s) => s.fCount >= 5)
+    .map((s) => ({ params: { slug: `${s.slug}-county` }, props: { s } }));
+}
+
+const { s } = Astro.props;
+const county = `${s.countyName} County`;
+const intro = failedIntro(s);
+
+const worst = (specialByCounty.get(s.slug) || []).find((p) => p.specialType === 'worst_health');
+const TOP_VIOLATIONS = 8;
+const topViolations = s.violations.slice(0, TOP_VIOLATIONS);
+
+const pageUrl = new URL(`/${s.slug}-county/failed-inspections/`, Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+const seoTitle = `${county} Failed Restaurant Inspections`.slice(0, 60);
+const seoDescription = (
+  `${county} restaurants that failed health inspection: ${s.fCount} at an F grade, ` +
+  `${s.dCount} at a D, ${s.emergencyCount} under a state emergency order, from DBPR records.`
+).slice(0, 155);
+
+const faqs = [
+  {
+    q: `How many restaurants failed health inspection in ${county}?`,
+    a: `Of the ${s.graded.toLocaleString('en-US')} ${county} restaurants we grade, ${s.fCount} hold an F and ${s.dCount} hold a D — ${s.pctFailing}% below a C. ${s.emergencyCount > 0 ? `${s.emergencyCount} have been placed under a state emergency order.` : 'None is currently under a state emergency order.'}`,
+  },
+  {
+    q: `Does Florida close restaurants that fail inspection in ${county}?`,
+    a: `Florida can issue an emergency order suspending a licence, which requires the establishment to stop operating until the problem is corrected and a callback inspection clears it. ${s.emergencyCount > 0 ? `${s.emergencyCount} ${county} restaurants we publish have such an order on record.` : `No ${county} restaurant we publish currently has such an order on record.`}`,
+  },
+  {
+    q: `Are these official ${county} health grades?`,
+    a: `No. Florida's Department of Business and Professional Regulation inspects restaurants and records violations, but it issues no letter grades or scores. The A–F grades here are calculated by us from those public records using one published formula.`,
+  },
+];
+
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: `${county} Failed Restaurant Inspections`,
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': orgId },
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: s.fList.length,
+    itemListElement: s.fList.map((r, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`${r.url}/`, Astro.site).href,
+      name: r.name,
+    })),
+  },
+};
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: county, item: new URL(`/${s.slug}-county/`, Astro.site).href },
+    { '@type': 'ListItem', position: 3, name: 'Failed Inspections', item: pageUrl },
+  ],
+};
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([collectionSchema, breadcrumbSchema, faqSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo;
+      <a href={`/${s.slug}-county/`}>{county}</a> &rsaquo;
+      <span>Failed Inspections</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">Enforcement records · Florida DBPR</p>
+      <h1>{county} Failed Restaurant Inspections</h1>
+
+      <div class="statrow">
+        <div class="stat"><b>{s.fCount}</b><span>F grade</span></div>
+        <div class="stat"><b>{s.dCount}</b><span>D grade</span></div>
+        <div class="stat"><b>{s.emergencyCount}</b><span>Emergency orders</span></div>
+        <div class="stat"><b>{s.pctFailing}%</b><span>Below a C</span></div>
+      </div>
+
+      <p class="lead">{intro.lead} {intro.support}</p>
+
+      <p class="src">
+        Coverage: we publish inspection records for {s.published.toLocaleString('en-US')} of
+        {' '}{county}&rsquo;s {s.licensed.toLocaleString('en-US')} licensed food service
+        establishments. Every figure on this page describes the {s.published.toLocaleString('en-US')}
+        {' '}we publish, not the full licensed roster.
+        {s.nr > 0 && (
+          <> {s.nr} {s.nr === 1 ? 'restaurant is' : 'restaurants are'} excluded from grade
+          percentages, having no recent scoreable inspection on file; {s.graded.toLocaleString('en-US')}
+          {' '}are graded.</>
+        )}
+      </p>
+
+      <GradeAttribution />
+
+      {s.emergency.length > 0 && (
+        <section aria-labelledby="emergency-h">
+          <h2 id="emergency-h">Emergency orders in {county}</h2>
+          <p>
+            A state emergency order suspends the licence and requires the establishment to stop
+            operating until a callback inspection clears it. These {s.emergency.length}
+            {' '}{s.emergency.length === 1 ? 'restaurant has' : 'restaurants have'} one on record,
+            newest first. The date and disposition are the ones DBPR recorded.
+          </p>
+          <ol class="faillist">
+            {s.emergency.map((r) => (
+              <li class="fail fail--em">
+                <p class="fail-head">
+                  <a class="fail-name" href={`${r.url}/`}>{r.name}</a>
+                  <span class="fail-city">{r.city}</span>
+                </p>
+                <p class="fail-meta">
+                  {r.dateText && <><strong>{r.dateText}</strong> &middot; </>}{r.disposition}
+                </p>
+                <p class="fail-viol">
+                  {r.high} high-priority &middot; {r.intermediate} intermediate &middot; {r.basic} basic
+                  {r.score != null && <> &middot; grade {r.grade} ({r.score}/100)</>}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <section aria-labelledby="fgrade-h">
+        <h2 id="fgrade-h">F-grade restaurants in {county}</h2>
+        <p>
+          {s.fCount} restaurants score below 60 on their most recent inspection, listed
+          lowest score first. Violation counts and the inspection date are as recorded by DBPR.
+        </p>
+        <ol class="faillist">
+          {s.fList.map((r) => (
+            <li class="fail">
+              <p class="fail-head">
+                <span class="fail-score fs-F">{r.score}</span>
+                <a class="fail-name" href={`${r.url}/`}>{r.name}</a>
+                <span class="fail-city">{r.city}</span>
+                {r.emergency && <span class="fail-tag">Emergency order</span>}
+              </p>
+              <p class="fail-viol">
+                {r.high} high-priority &middot; {r.intermediate} intermediate &middot; {r.basic} basic
+                {r.dateText && <> &middot; inspected {r.dateText}</>}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {s.dList.length > 0 && (
+        <section aria-labelledby="dgrade-h">
+          <h2 id="dgrade-h">D-grade restaurants in {county}</h2>
+          <p>
+            {s.dCount} restaurants score 60 to 69, again lowest first.
+          </p>
+          <ol class="faillist">
+            {s.dList.map((r) => (
+              <li class="fail">
+                <p class="fail-head">
+                  <span class="fail-score fs-D">{r.score}</span>
+                  <a class="fail-name" href={`${r.url}/`}>{r.name}</a>
+                  <span class="fail-city">{r.city}</span>
+                  {r.emergency && <span class="fail-tag">Emergency order</span>}
+                </p>
+                <p class="fail-viol">
+                  {r.high} high-priority &middot; {r.intermediate} intermediate &middot; {r.basic} basic
+                  {r.dateText && <> &middot; inspected {r.dateText}</>}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {topViolations.length > 0 && (
+        <section aria-labelledby="viol-h">
+          <h2 id="viol-h">Violations most often cited at failing {county} restaurants</h2>
+          <p>
+            Across the {s.failing} restaurants at a D or F, DBPR recorded{' '}
+            {s.hpTotal.toLocaleString('en-US')} high-priority violations at{' '}
+            {s.hpSites} of them. The codes below are ranked by how many of those failing
+            restaurants were cited under each.
+          </p>
+          <p class="src">
+            DBPR does not publish a priority tier per violation code in this dataset, so these are
+            ranked by frequency at failing restaurants rather than labelled high-priority. Official
+            wording first, then what it means in practice.
+          </p>
+          <ol class="viols">
+            {topViolations.map((v, i) => (
+              <li class="viol">
+                <p class="viol-head">
+                  <span class="viol-rank">{i + 1}</span>
+                  <span class="viol-code">Code {v.code}</span>
+                  <span class="viol-count">{v.sites} of {s.failing} failing restaurants &middot; {v.count.toLocaleString('en-US')} citations</span>
+                </p>
+                <p class="viol-official">{v.official}</p>
+                {v.plain && <p class="viol-plain">{v.plain}</p>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <section aria-labelledby="explore-h">
+        <h2 id="explore-h">More {county} inspection data</h2>
+        <ul class="link-list">
+          <li><a href={`/${s.slug}-county/restaurant-inspections/`}>{county} restaurant inspections</a> &mdash; full grade distribution, violations and enforcement history</li>
+          <li><a href={`/${s.slug}-county/`}>All {county} restaurants and health grades</a> ({s.published.toLocaleString('en-US')})</li>
+          {worst && <li><a href={`${worst.url}/`}>Lowest health scores in {county}</a> ({worst.items.length})</li>}
+          <li><a href="/methodology/">How we calculate health grades</a></li>
+          <li><a href="/guides/">Every guide on the site</a></li>
+        </ul>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-h">
+        <h2 id="faq-h">{county} failed inspections — FAQ</h2>
+        <dl class="faq">
+          {faqs.map((f) => (<><dt>{f.q}</dt><dd>{f.a}</dd></>))}
+        </dl>
+      </section>
+    </article>
+  </main>
+
+  <style>
+    .src { font-size: 0.84rem; color: var(--mute); font-style: italic; margin: 0.5rem 0 0; }
+
+    ol.faillist, ol.viols { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.7rem; }
+    .fail { padding: 0.8rem 1rem; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--gd-solid); border-radius: 2px; }
+    .fail--em { border-left-color: var(--gf-solid); }
+    .fail-head { margin: 0; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .fail-score { font-family: var(--mono); font-weight: 700; font-size: 0.8rem; color: #fff; padding: 0.15rem 0.45rem; border-radius: 2px; }
+    .fs-F { background: var(--gf-solid); } .fs-D { background: var(--gd-solid); color: var(--ink); }
+    .fail-name { font-weight: 700; color: var(--ink); }
+    .fail-city { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
+    .fail-tag { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase; background: var(--gf-solid); color: #fff; padding: 0.12rem 0.4rem; border-radius: 2px; }
+    .fail-meta { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--ink-2); }
+    .fail-viol { margin: 0.2rem 0 0; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.03em; color: var(--mute); }
+
+    .viol { padding: 0.8rem 1rem; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--citrus); border-radius: 2px; }
+    .viol-head { margin: 0; display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+    .viol-rank { font-family: var(--mono); font-weight: 700; color: var(--citrus-ink); }
+    .viol-code { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
+    .viol-count { font-family: var(--mono); font-size: 0.66rem; color: var(--mute); margin-left: auto; }
+    .viol-official { margin: 0.3rem 0 0; font-size: 0.93rem; color: var(--ink); font-weight: 600; }
+    .viol-plain { margin: 0.25rem 0 0; font-size: 0.9rem; line-height: 1.55; color: var(--ink-2); }
+
+    dl.faq { margin: 1rem 0 0; }
+    dl.faq dt { font-weight: 700; margin: 0.9rem 0 0.25rem; }
+    dl.faq dd { margin: 0; color: var(--ink-2); font-size: 0.95rem; line-height: 1.6; }
+  </style>
+</Base>
