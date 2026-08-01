@@ -12,7 +12,7 @@ import { failedIntro } from '../../lib/prose.js';
 // so a module-level const declared here is not visible inside it.
 export function getStaticPaths() {
   return allCountyFailures()
-    .filter((s) => s.fCount >= 5)
+    .filter((s) => s.fCount >= 4)
     .map((s) => ({ params: { slug: `${s.slug}-county` }, props: { s } }));
 }
 

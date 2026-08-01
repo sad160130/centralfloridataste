@@ -55,9 +55,9 @@ const ownFilters = sortFilters((isCounty ? countyFilters.get(slug) : cityFilters
    combo hub depends on being reachable only via the sitemap. A city hub links
    its own guides, its parent county and its sibling cities. */
 const countyLinks = isCounty ? countyHubLinks(slug) : null;
-// Failed-inspections page exists only where the county has >=5 published F grades.
+// Failed-inspections page exists only where the county has >=4 published F grades.
 const failStats = isCounty ? countyFailureStats(slug) : null;
-const hasFailPage = !!failStats && failStats.fCount >= 5;
+const hasFailPage = !!failStats && failStats.fCount >= 4;
 const cityLinks = isCounty ? null : cityHubLinks(slug);
 
 // Health-score "special" pages for this area.

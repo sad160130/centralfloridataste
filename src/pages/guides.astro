@@ -94,7 +94,7 @@ const breadcrumbSchema = {
             <h3>Inspection records</h3>
             <ul class="guide-links">
               <li><a href={`/${c.slug}-county/restaurant-inspections/`}>{c.name} County restaurant inspections</a></li>
-              {(countyFailureStats(c.slug)?.fCount ?? 0) >= 5 && (
+              {(countyFailureStats(c.slug)?.fCount ?? 0) >= 4 && (
                 <li><a href={`/${c.slug}-county/failed-inspections/`}>{c.name} County failed inspections</a></li>
               )}
             </ul>
