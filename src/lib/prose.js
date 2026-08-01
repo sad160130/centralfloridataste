@@ -1213,3 +1213,69 @@ export function reviewSynthesis(r, entry) {
   const wordCount = paragraphs.join(' ').split(/\s+/).filter(Boolean).length;
   return { angle, blockOrder, paragraphs, wordCount, reviewsAnalysed: N };
 }
+
+// ===========================================================================
+// COUNTY INSPECTIONS page prose — /[county]-county/restaurant-inspections/.
+// Same conventions as everything above: a priority tree picks the lead from
+// the data, then phrasing rotates on independent stable per-county seeds so
+// the eight pages don't read as one template with the county name swapped.
+// ===========================================================================
+export function inspectionsIntro(s) {
+  const sd = (tag) => seedOf(`${s.slug}#insp#${tag}`);
+  const county = `${s.countyName} County`;
+  const n = num(s.restaurants);
+  const insp = num(s.inspections);
+  const top = s.violations[0];
+  const enf = s.enforcementTotal;
+
+  /* ---- lead: whichever fact about THIS county is most distinctive ---- */
+  const L = [];
+  if (s.pctA >= 65) {
+    L.push(
+      `${county} inspects well by Central Florida standards: ${s.pctA}% of the ${n} restaurants we grade here hold an A.`,
+      `Across ${insp} inspections of ${n} ${county} restaurants, ${s.pctA}% currently sit at an A grade — above the regional middle.`,
+      `The headline for ${county} is a high pass rate: ${s.pctA}% of graded kitchens are at an A.`
+    );
+  } else if (s.failing >= Math.max(8, s.restaurants * 0.06)) {
+    L.push(
+      `${s.failing} of the ${n} ${county} restaurants we grade are currently at a D or F.`,
+      `${county} carries a visible tail: ${s.failing} kitchens sit at D or F across ${insp} inspections on file.`,
+      `Of ${n} graded ${county} restaurants, ${s.failing} are failing outright — the number worth knowing before you book.`
+    );
+  } else if (enf >= 5) {
+    L.push(
+      `Florida took formal enforcement action ${num(enf)} times in ${county} across the inspections on file.`,
+      `${county} has ${num(enf)} inspections that ended in enforcement rather than a routine pass.`,
+      `Beyond routine visits, ${num(enf)} ${county} inspections escalated to an administrative complaint or emergency order.`
+    );
+  } else {
+    L.push(
+      `We hold ${insp} DBPR inspection records for ${n} restaurants in ${county}.`,
+      `${county} runs to ${n} graded restaurants and ${insp} inspections on file.`,
+      `This is what ${insp} inspections across ${n} ${county} restaurants add up to.`
+    );
+  }
+
+  /* ---- support: the second-most useful framing ---- */
+  const S = [
+    `That works out to ${s.avgInspections} inspections per restaurant over the period, including routine visits, callbacks and complaint-driven checks.`,
+    `Every restaurant here was visited at least once, and many more than once — ${s.avgInspections} times on average.`,
+    `The records run ${s.avgInspections} inspections deep per restaurant, so most kitchens appear more than once.`,
+  ];
+
+  /* ---- the violation angle ---- */
+  const V = [];
+  if (top) {
+    V.push(
+      `The single most-cited problem in ${county} is code ${top.code} — ${top.official.toLowerCase()} — recorded ${num(top.count)} times at ${num(top.sites)} different restaurants.`,
+      `Code ${top.code} leads the county's violation list, appearing ${num(top.count)} times across ${num(top.sites)} ${county} restaurants.`,
+      `If ${county} has a recurring weakness it is code ${top.code}, cited ${num(top.count)} times at ${num(top.sites)} establishments.`
+    );
+  }
+
+  return {
+    lead: tidy(pick(L, sd('lead'))),
+    support: tidy(pick(S, sd('support'))),
+    violationLead: top ? tidy(pick(V, sd('viol'))) : null,
+  };
+}

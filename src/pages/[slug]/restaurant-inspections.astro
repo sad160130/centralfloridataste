@@ -1,0 +1,269 @@
+---
+import Base from '../../layouts/Base.astro';
+import GradeAttribution from '../../components/GradeAttribution.astro';
+import { allCountyInspections } from '../../lib/inspections.js';
+import { cities } from '../../lib/data.js';
+import { specialByCounty } from '../../lib/manifest.js';
+import { titleCase } from '../../lib/format.js';
+import { inspectionsIntro } from '../../lib/prose.js';
+
+// /[county_slug]-county/restaurant-inspections/ — one per county. Static segment,
+// so Astro prioritises it over the sibling [filter].astro dynamic route.
+export function getStaticPaths() {
+  return allCountyInspections().map((s) => ({
+    params: { slug: `${s.slug}-county` },
+    props: { s },
+  }));
+}
+
+const { s } = Astro.props;
+const county = `${s.countyName} County`;
+const intro = inspectionsIntro(s);
+
+// City hubs inside this county, largest first.
+const cityHubs = cities
+  .filter((c) => c.items[0].county_slug === s.slug)
+  .sort((a, b) => b.items.length - a.items.length);
+
+// Worst-offenders page for this county, when one was generated.
+const worst = (specialByCounty.get(s.slug) || []).find((p) => p.specialType === 'worst_health');
+
+const TOP_VIOLATIONS = 10;
+const TOP_ENFORCEMENT = 10;
+const topViolations = s.violations.slice(0, TOP_VIOLATIONS);
+const recentEnforcement = s.enforcement.slice(0, TOP_ENFORCEMENT);
+
+const pageUrl = new URL(`/${s.slug}-county/restaurant-inspections/`, Astro.site).href;
+const orgId = `${new URL('/', Astro.site).href}#organization`;
+
+const seoTitle = `${county} Restaurant Inspections`.slice(0, 60);
+const seoDescription = (
+  `${county} restaurant inspection records: ${s.inspections.toLocaleString('en-US')} DBPR ` +
+  `inspections across ${s.restaurants.toLocaleString('en-US')} restaurants, with grades, ` +
+  `violations and enforcement actions.`
+).slice(0, 155);
+
+const faqs = [
+  {
+    q: `Does Florida grade restaurants in ${county}?`,
+    a: `No. The Florida Department of Business and Professional Regulation inspects restaurants and records violations, but it does not issue letter grades or scores. The A–F grades shown here are calculated by us from those public inspection records.`,
+  },
+  {
+    q: `How many restaurant inspections are on file for ${county}?`,
+    a: `We hold ${s.inspections.toLocaleString('en-US')} DBPR inspection records covering ${s.restaurants.toLocaleString('en-US')} ${county} restaurants${s.dateFromText ? `, from ${s.dateFromText} to ${s.dateToText}` : ''} — an average of ${s.avgInspections} inspections per restaurant.`,
+  },
+  {
+    q: `What is the most common health violation in ${county}?`,
+    a: s.violations[0]
+      ? `Code ${s.violations[0].code} — ${s.violations[0].official} — recorded ${s.violations[0].count.toLocaleString('en-US')} times at ${s.violations[0].sites.toLocaleString('en-US')} different ${county} restaurants.`
+      : `No violations are recorded in the current ${county} inspection set.`,
+  },
+];
+
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: `${county} Restaurant Inspections`,
+  url: pageUrl,
+  description: seoDescription,
+  publisher: { '@id': orgId },
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: recentEnforcement.length,
+    itemListElement: recentEnforcement.map((e, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`${e.url}/`, Astro.site).href,
+      name: e.name,
+    })),
+  },
+};
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: county, item: new URL(`/${s.slug}-county/`, Astro.site).href },
+    { '@type': 'ListItem', position: 3, name: 'Restaurant Inspections', item: pageUrl },
+  ],
+};
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
+---
+
+<Base title={seoTitle} description={seoDescription}>
+  <script
+    type="application/ld+json"
+    slot="jsonld"
+    set:html={JSON.stringify([collectionSchema, breadcrumbSchema, faqSchema])}
+  />
+
+  <main>
+    <nav aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo;
+      <a href={`/${s.slug}-county/`}>{county}</a> &rsaquo;
+      <span>Restaurant Inspections</span>
+    </nav>
+
+    <article>
+      <p class="eyebrow">Inspection records · Florida DBPR</p>
+      <h1>{county} Restaurant Inspections</h1>
+
+      <div class="statrow">
+        <div class="stat"><b>{s.inspections.toLocaleString('en-US')}</b><span>Inspections</span></div>
+        <div class="stat"><b>{s.restaurants.toLocaleString('en-US')}</b><span>Restaurants</span></div>
+        <div class="stat"><b>{s.pctA}%</b><span>Grade A</span></div>
+        <div class="stat"><b>{s.enforcementTotal.toLocaleString('en-US')}</b><span>Enforcement actions</span></div>
+      </div>
+
+      <p class="lead">{intro.lead} {intro.support}</p>
+
+      {s.dateFromText && (
+        <p class="src">
+          Records cover inspections from {s.dateFromText} to {s.dateToText}, drawn from Florida
+          DBPR public inspection data.
+        </p>
+      )}
+
+      <GradeAttribution />
+
+      <section aria-labelledby="grades-h">
+        <h2 id="grades-h">Grade distribution in {county}</h2>
+        <p>
+          Florida issues no official restaurant grades. Each score below is calculated by us from
+          the restaurant&rsquo;s most recent DBPR inspection — 100 points less 8 for every
+          high-priority violation, 3 for every intermediate and 1 for every basic —
+          then banded A to F. Of {s.graded.toLocaleString('en-US')} graded {county} restaurants,
+          {' '}{s.grades.A.toLocaleString('en-US')} hold an A and {s.failing.toLocaleString('en-US')} sit at D or F.
+        </p>
+        <table class="gradetable">
+          <thead>
+            <tr><th scope="col">Grade</th><th scope="col">Score range</th><th scope="col">Restaurants</th><th scope="col">Share</th></tr>
+          </thead>
+          <tbody>
+            {s.gradeRows.map((g) => (
+              <tr>
+                <th scope="row"><span class={`gt-badge gt-${g.grade}`}>{g.grade}</span></th>
+                <td class="gt-range">{g.grade === 'A' ? '90–100' : g.grade === 'B' ? '80–89' : g.grade === 'C' ? '70–79' : g.grade === 'D' ? '60–69' : 'below 60'}</td>
+                <td class="gt-num">{g.count.toLocaleString('en-US')}</td>
+                <td class="gt-num">{g.pct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      {recentEnforcement.length > 0 && (
+        <section aria-labelledby="enforce-h">
+          <h2 id="enforce-h">Most recent enforcement actions in {county}</h2>
+          <p>
+            These are inspections that ended in something stronger than a routine pass — an
+            administrative complaint or an emergency order — newest first. Across the whole
+            record set {county} has {s.enforcementTotal.toLocaleString('en-US')}{' '}
+            such {s.enforcementTotal === 1 ? 'action' : 'actions'} and{' '}
+            {s.warnings.toLocaleString('en-US')} inspections that closed with a warning.
+          </p>
+          <ol class="enforce">
+            {recentEnforcement.map((e) => (
+              <li class="enf">
+                <p class="enf-head">
+                  <strong>{e.dateText}</strong>
+                  {e.emergency && <span class="enf-tag">Emergency order</span>}
+                </p>
+                <p class="enf-name"><a href={`${e.url}/`}>{e.name}</a> &middot; {e.city}</p>
+                <p class="enf-disp">{e.disposition}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {topViolations.length > 0 && (
+        <section aria-labelledby="viol-h">
+          <h2 id="viol-h">Most common violations in {county}</h2>
+          {intro.violationLead && <p>{intro.violationLead}</p>}
+          <p class="src">
+            Ranked by how often each code was cited across all {s.inspections.toLocaleString('en-US')}{' '}
+            inspections. The official DBPR wording is given first, then what it means in practice.
+          </p>
+          <ol class="viols">
+            {topViolations.map((v, i) => (
+              <li class="viol">
+                <p class="viol-head">
+                  <span class="viol-rank">{i + 1}</span>
+                  <span class="viol-code">Code {v.code}</span>
+                  <span class="viol-count">{v.count.toLocaleString('en-US')} citations · {v.sites.toLocaleString('en-US')} restaurants</span>
+                </p>
+                <p class="viol-official">{v.official}</p>
+                {v.plain && <p class="viol-plain">{v.plain}</p>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <section aria-labelledby="explore-h">
+        <h2 id="explore-h">Explore {county} restaurants</h2>
+        <ul class="link-list">
+          <li><a href={`/${s.slug}-county/`}>All {county} restaurants and health grades</a> ({s.restaurants.toLocaleString('en-US')})</li>
+          {worst && (
+            <li><a href={`${worst.url}/`}>Lowest health scores in {county}</a> ({worst.items.length})</li>
+          )}
+          {cityHubs.map((c) => (
+            <li><a href={`/${c.slug}/`}>{titleCase(c.name)} restaurant health grades</a> ({c.items.length})</li>
+          ))}
+          <li><a href="/guides/">Every guide on the site</a></li>
+          <li><a href="/methodology/">How we calculate health grades</a></li>
+        </ul>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-h">
+        <h2 id="faq-h">{county} restaurant inspections — FAQ</h2>
+        <dl class="faq">
+          {faqs.map((f) => (<><dt>{f.q}</dt><dd>{f.a}</dd></>))}
+        </dl>
+      </section>
+    </article>
+  </main>
+
+  <style>
+    .src { font-size: 0.84rem; color: var(--mute); font-style: italic; margin: 0.3rem 0 0; }
+
+    table.gradetable { width: 100%; max-width: 34rem; border-collapse: collapse; margin: 1rem 0 0; font-size: 0.92rem; }
+    table.gradetable th, table.gradetable td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--line); }
+    table.gradetable thead th { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--mute); font-weight: 600; }
+    .gt-num { font-family: var(--mono); }
+    .gt-range { font-family: var(--mono); font-size: 0.8rem; color: var(--mute); }
+    .gt-badge { display: inline-flex; align-items: center; justify-content: center; width: 1.7rem; height: 1.7rem; border-radius: 2px; font-family: var(--mono); font-weight: 700; font-size: 0.85rem; color: #fff; }
+    .gt-A { background: var(--ga-solid); } .gt-B { background: var(--gb-solid); }
+    .gt-C { background: var(--gc-solid); color: var(--ink); } .gt-D { background: var(--gd-solid); color: var(--ink); }
+    .gt-F { background: var(--gf-solid); }
+
+    ol.enforce, ol.viols { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.8rem; }
+    .enf { padding: 0.85rem 1rem; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--g-f); border-radius: 2px; }
+    .enf-head { margin: 0; font-family: var(--mono); font-size: 0.8rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .enf-tag { font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; background: var(--gf-solid); color: #fff; padding: 0.15rem 0.4rem; border-radius: 2px; }
+    .enf-name { margin: 0.25rem 0 0; font-size: 0.95rem; }
+    .enf-name a { color: var(--ink); }
+    .enf-disp { margin: 0.2rem 0 0; font-size: 0.86rem; color: var(--ink-2); }
+
+    .viol { padding: 0.85rem 1rem; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--citrus); border-radius: 2px; }
+    .viol-head { margin: 0; display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+    .viol-rank { font-family: var(--mono); font-weight: 700; color: var(--citrus-ink); }
+    .viol-code { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); }
+    .viol-count { font-family: var(--mono); font-size: 0.68rem; color: var(--mute); margin-left: auto; }
+    .viol-official { margin: 0.3rem 0 0; font-size: 0.93rem; color: var(--ink); font-weight: 600; }
+    .viol-plain { margin: 0.25rem 0 0; font-size: 0.9rem; line-height: 1.55; color: var(--ink-2); }
+
+    dl.faq { margin: 1rem 0 0; }
+    dl.faq dt { font-weight: 700; margin: 0.9rem 0 0.25rem; }
+    dl.faq dd { margin: 0; color: var(--ink-2); font-size: 0.95rem; line-height: 1.6; }
+  </style>
+</Base>

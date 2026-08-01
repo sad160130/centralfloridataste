@@ -89,6 +89,13 @@ const breadcrumbSchema = {
             <span class="gc-count">{c.count.toLocaleString('en-US')} restaurants</span>
           </h2>
 
+          <div class="guide-group">
+            <h3>Inspection records</h3>
+            <ul class="guide-links">
+              <li><a href={`/${c.slug}-county/restaurant-inspections/`}>{c.name} County restaurant inspections</a></li>
+            </ul>
+          </div>
+
           {c.countyLevel.length > 0 && (
             <div class="guide-group">
               <h3>Countywide guides</h3>

@@ -181,6 +181,21 @@ const breadcrumbSchema = {
         </section>
       )}
 
+      {/* Inspection-records page for this county. Its own block, not nested in
+          the specials section — counties without a worst-scores page (St. Lucie)
+          would otherwise lose the link entirely. */}
+      {isCounty && (
+        <section aria-labelledby="inspections-h">
+          <h2 id="inspections-h">{displayName} County inspection records</h2>
+          <ul class="link-list">
+            <li>
+              <a href={`/${slug}-county/restaurant-inspections/`}>{displayName} County restaurant inspections</a>
+              {' '}&mdash; grade distribution, most-cited violations and recent enforcement actions
+            </li>
+          </ul>
+        </section>
+      )}
+
       {specials.length > 0 && (
         <section aria-labelledby="favorites-h">
           <h2 id="favorites-h">Health &amp; local favorites</h2>
